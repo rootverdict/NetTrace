@@ -300,7 +300,3 @@ NetTrace analyzes packet captures only. Do not execute malware on a host operati
 
 Aryan - MSc DFIS, NFSU Gandhinagar
 
-## Resume Bullets
-
-- Built NetTrace, a Python malware traffic analysis platform that parses PCAPs, extracts IOCs, detects suspicious DNS, HTTP, TLS, and flow behavior, maps findings to MITRE ATT&CK, and generates JSON, HTML, and PDF reports.
-- Validated NetTrace against 5 real Malware-Traffic-Analysis.net PCAP samples across Emotet, Raspberry Robin, Redtail, AgentTesla, and NetSupport RAT traffic.
