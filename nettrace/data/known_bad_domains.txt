@@ -1,0 +1,3 @@
+# Demo entries. Replace or extend with your own intel.
+malware-test.example
+xj3k9q2z7m1p0a8c.biz

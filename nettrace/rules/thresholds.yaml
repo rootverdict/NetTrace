@@ -1,0 +1,9 @@
+thresholds:
+  beacon_min_events: 5
+  beacon_max_cv: 0.25
+  beacon_min_interval_seconds: 2
+  dga_entropy_threshold: 3.4
+  dga_score_threshold: 0.6
+  high_frequency_connections: 50
+  long_tls_session_seconds: 900
+  tls_sni_length_threshold: 24

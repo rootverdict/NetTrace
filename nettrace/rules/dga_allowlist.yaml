@@ -1,0 +1,18 @@
+suffixes:
+  - ".local"
+  - ".localdomain"
+  - ".microsoft.com"
+  - ".windowsupdate.com"
+  - ".msedge.net"
+  - ".azureedge.net"
+  - ".azurefd.us"
+  - ".cloudapp.azure.com"
+  - ".trafficmanager.net"
+contains:
+  - "microsoft"
+  - "windowsupdate"
+  - "msedge"
+  - "azure"
+regexes:
+  - "^desktop-[a-z0-9-]+(\\..*)?$"
+  - "^[a-z0-9-]+-dc(\\..*)?$"

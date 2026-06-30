@@ -1,0 +1,27 @@
+dns_beaconing:
+  id: T1071.004
+  name: "Application Layer Protocol: DNS"
+network_beaconing:
+  id: T1071.001
+  name: "Application Layer Protocol: Web Protocols"
+http_c2:
+  id: T1071.001
+  name: "Application Layer Protocol: Web Protocols"
+tls_c2:
+  id: T1573
+  name: "Encrypted Channel"
+dga_domain:
+  id: T1568.002
+  name: "Dynamic Resolution: Domain Generation Algorithms"
+long_tls_session:
+  id: T1090
+  name: "Proxy"
+high_frequency_connections:
+  id: T1020
+  name: "Automated Exfiltration"
+unusual_port:
+  id: T1571
+  name: "Non-Standard Port"
+threat_intel_match:
+  id: T1071
+  name: "Application Layer Protocol"

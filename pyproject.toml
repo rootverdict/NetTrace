@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nettrace-malware-analysis"
+version = "1.0.0"
+description = "Offline malware traffic analysis platform for PCAP triage, IOC extraction, ATT&CK mapping, and analyst reports."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Aryan" }
+]
+keywords = [
+  "malware-analysis",
+  "pcap",
+  "network-security",
+  "threat-hunting",
+  "mitre-attack",
+  "ioc"
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Information Technology",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+  "Topic :: System :: Networking :: Monitoring"
+]
+dependencies = [
+  "scapy~=2.6",
+  "jinja2~=3.1",
+  "pyyaml~=6.0",
+  "requests~=2.32",
+  "pymisp~=2.4",
+  "reportlab~=4.2"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest~=8.4"
+]
+
+[project.scripts]
+nettrace = "nettrace.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["nettrace*"]
+
+[tool.setuptools.package-data]
+nettrace = [
+  "data/*.txt",
+  "rules/*.yaml",
+  "report/templates/*.html"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,19 @@
+thresholds:
+  beacon_min_events: 5
+  beacon_max_cv: 0.25
+  beacon_min_interval_seconds: 2
+  dga_entropy_threshold: 3.4
+  dga_score_threshold: 0.6
+  high_frequency_connections: 50
+  long_tls_session_seconds: 900
+
+intel:
+  known_bad_domains: nettrace/data/known_bad_domains.txt
+  known_bad_ips: nettrace/data/known_bad_ips.txt
+  suspicious_user_agents: nettrace/data/suspicious_user_agents.txt
+
+misp:
+  enabled: false
+  url: ""
+  api_key: ""
+  verify_ssl: true
