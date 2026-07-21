@@ -22,6 +22,14 @@ def test_threat_intel_mapping_is_refined_by_source():
     assert http_hit.attack_id == "T1071.001"
 
 
+def test_connect_target_intel_mapping_is_refined_as_web_protocol():
+    finding = Finding("hit", "desc", {"source": "http_connect_target"}, "threat_intel_match")
+
+    tag_findings([finding])
+
+    assert finding.attack_id == "T1071.001"
+
+
 def test_threat_intel_flow_mapping_uses_destination_port():
     finding = Finding("hit", "desc", {"source": "flow:tcp:4444"}, "threat_intel_match")
 

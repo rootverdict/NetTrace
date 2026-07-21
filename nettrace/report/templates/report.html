@@ -21,6 +21,13 @@
   <h1>NetTrace Malware Traffic Analysis Report</h1>
   <p><strong>PCAP:</strong> {{ report.pcap_path }}</p>
 
+  {% if report.warnings %}
+  <h2>Analysis Warnings</h2>
+  <ul>
+    {% for warning in report.warnings %}<li>{{ warning }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
   <h2>Summary</h2>
   <table>
     <tr><th>Metric</th><th>Count</th></tr>

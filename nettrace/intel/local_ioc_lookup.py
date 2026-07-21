@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 from pathlib import Path
 
 from nettrace.analysis.evidence import packet_evidence
@@ -16,7 +17,7 @@ def _read_set(path: str) -> set[str]:
     return {
         line.strip().lower()
         for line in file_path.read_text(encoding="utf-8").splitlines()
-        if line.strip() and not line.startswith("#")
+        if line.strip() and not line.lstrip().startswith("#")
     }
 
 
@@ -27,9 +28,15 @@ class LocalIntel:
 
     @classmethod
     def from_config(cls, config: dict) -> "LocalIntel":
+        ips = set()
+        for value in _read_set(config.get("known_bad_ips", "")):
+            try:
+                ips.add(str(ipaddress.ip_address(value)))
+            except ValueError:
+                continue
         return cls(
             domains=_read_set(config.get("known_bad_domains", "")),
-            ips=_read_set(config.get("known_bad_ips", "")),
+            ips=ips,
         )
 
     def match_iocs(self, iocs: list[IOC]) -> list[Finding]:

@@ -90,9 +90,10 @@ def score_domains(dns_events: list[DNSEvent], thresholds: dict) -> list[Finding]
     allowlist = _load_dga_allowlist()
     seen: set[str] = set()
     for event in dns_events:
-        if event.query in seen:
+        normalized_query = event.query.lower().rstrip(".")
+        if normalized_query in seen:
             continue
-        seen.add(event.query)
+        seen.add(normalized_query)
         if is_allowlisted_domain(event.query, allowlist):
             continue
         score = dga_score(event.query)

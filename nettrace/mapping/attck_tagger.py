@@ -46,7 +46,7 @@ def _refine_threat_intel_technique(finding: Finding) -> tuple[str, str] | None:
     source = finding.evidence.get("source", "")
     if "dns" in source:
         return "T1071.004", "Application Layer Protocol: DNS"
-    if source in {"http_host", "http_flow", "http_request"}:
+    if source in {"http_host", "http_url_host", "http_connect_target", "http_flow", "http_request"}:
         return "T1071.001", "Application Layer Protocol: Web Protocols"
     if "tls" in source:
         return "T1573", "Encrypted Channel"

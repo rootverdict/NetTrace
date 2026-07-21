@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ipaddress
+from urllib.parse import urlsplit
 
 from nettrace.models.events import DNSEvent, Flow, HTTPEvent, IOC, TLSEvent
 
@@ -13,18 +14,27 @@ TEST_NETS = (
 SOURCE_PRIORITY = {
     "http_request": 0,
     "http_host": 1,
+    "http_url_host": 1,
+    "http_connect_target": 1,
     "http_flow": 2,
     "tls_sni": 3,
     "tls_flow": 4,
     "dns": 5,
     "dns_answer": 6,
+    "dns_answer_domain": 6,
 }
 
 
 def _add(iocs: set[IOC], kind: str, value: str, source: str, packet_number: int = 0) -> None:
     if not value:
         return
-    normalized = value.lower() if kind in {"domain", "ip"} else value
+    if kind == "ip":
+        try:
+            normalized = str(ipaddress.ip_address(value))
+        except ValueError:
+            return
+    else:
+        normalized = value.lower() if kind == "domain" else value
     iocs.add(IOC(kind=kind, value=normalized, source=source, packet_number=packet_number))
 
 
@@ -66,16 +76,16 @@ def _host_without_port(host: str) -> str:
     return value
 
 
-def _add_http_host(iocs: set[IOC], host: str, packet_number: int = 0) -> None:
+def _add_http_host(iocs: set[IOC], host: str, packet_number: int = 0, source: str = "http_host") -> None:
     if not host:
         return
     normalized = _host_without_port(host).rstrip(".")
     try:
         ipaddress.ip_address(normalized)
     except ValueError:
-        _add(iocs, "domain", normalized, "http_host", packet_number=packet_number)
+        _add(iocs, "domain", normalized, source, packet_number=packet_number)
         return
-    _add_ip(iocs, normalized, "http_host", packet_number=packet_number)
+    _add_ip(iocs, normalized, source, packet_number=packet_number)
 
 
 def _dedupe_iocs(iocs: set[IOC]) -> list[IOC]:
@@ -108,10 +118,29 @@ def extract_iocs(
     iocs: set[IOC] = set()
     for event in dns_events:
         _add(iocs, "domain", event.query, "dns", packet_number=event.packet_number)
+        for answer_domain in event.answer_domains:
+            _add(iocs, "domain", answer_domain, "dns_answer_domain", packet_number=event.packet_number)
         for answer in event.answers:
             _add_ip(iocs, answer, "dns_answer", packet_number=event.packet_number)
     for event in http_events:
         _add_http_host(iocs, event.host, packet_number=event.packet_number)
+        parsed_uri = urlsplit(event.uri)
+        if parsed_uri.scheme in {"http", "https"} and parsed_uri.hostname:
+            _add_http_host(
+                iocs,
+                parsed_uri.hostname,
+                packet_number=event.packet_number,
+                source="http_url_host",
+            )
+        elif event.method == "CONNECT":
+            connect_target = urlsplit(f"//{event.uri}").hostname
+            if connect_target:
+                _add_http_host(
+                    iocs,
+                    connect_target,
+                    packet_number=event.packet_number,
+                    source="http_connect_target",
+                )
         _add(iocs, "url", event.url, "http_request", packet_number=event.packet_number)
         _add_ip(iocs, event.dst_ip, "http_flow", packet_number=event.packet_number)
     for event in tls_events:

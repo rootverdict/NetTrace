@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from nettrace.config import load_config, package_data_path
+import pytest
+
+from nettrace.config import ConfigError, load_config, package_data_path
 
 
 def test_load_config_uses_threshold_rule_defaults_when_project_config_missing():
@@ -31,3 +33,23 @@ intel:
     assert config["intel"]["known_bad_domains"] == str((tmp_path / "data" / "domains.txt").resolve())
     assert config["intel"]["known_bad_ips"] == str((tmp_path / "data" / "ips.txt").resolve())
     assert config["intel"]["suspicious_user_agents"] == str((tmp_path / "data" / "user_agents.txt").resolve())
+
+
+def test_load_config_rejects_non_mapping_root(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("- item\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match="config root must be a mapping"):
+        load_config(config_path)
+
+
+def test_load_config_rejects_invalid_threshold_and_port_types(tmp_path):
+    bad_threshold = tmp_path / "bad-threshold.yaml"
+    bad_threshold.write_text("thresholds:\n  beacon_min_events: five\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="beacon_min_events"):
+        load_config(bad_threshold)
+
+    bad_port = tmp_path / "bad-port.yaml"
+    bad_port.write_text("protocols:\n  http_ports: [80, invalid]\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="http_ports"):
+        load_config(bad_port)

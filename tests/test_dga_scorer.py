@@ -44,3 +44,15 @@ def test_is_allowlisted_domain_respects_explicit_empty_allowlist():
         "ctldl.windowsupdate.com",
         {"suffixes": [], "contains": [], "regexes": []},
     )
+
+
+def test_score_domains_deduplicates_dns_names_case_insensitively():
+    domain = "xj3k9q2z7m1p0a8c.biz"
+    events = [
+        DNSEvent(1.0, "10.0.0.5", "10.0.0.1", domain),
+        DNSEvent(2.0, "10.0.0.5", "10.0.0.1", domain.upper()),
+    ]
+
+    findings = score_domains(events, {"dga_entropy_threshold": 3.4, "dga_score_threshold": 0.6})
+
+    assert len(findings) == 1

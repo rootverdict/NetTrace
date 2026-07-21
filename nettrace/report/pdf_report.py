@@ -44,7 +44,13 @@ def render_pdf_report(report: AnalysisReport, output_path: Path) -> Path:
             ]
         )
     )
-    elements.extend([summary, Spacer(1, 16), Paragraph("Findings", styles["Heading2"])])
+    elements.extend([summary, Spacer(1, 16)])
+    if report.warnings:
+        elements.append(Paragraph("Analysis Warnings", styles["Heading2"]))
+        for warning in report.warnings:
+            elements.append(Paragraph(f"• {escape(warning)}", styles["Normal"]))
+        elements.append(Spacer(1, 12))
+    elements.append(Paragraph("Findings", styles["Heading2"]))
     for finding in sorted(report.findings, key=lambda item: item.score, reverse=True):
         elements.append(Paragraph(f"{finding.severity.upper()} - {finding.title}", styles["Heading3"]))
         elements.append(Paragraph(finding.description, styles["Normal"]))

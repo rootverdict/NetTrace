@@ -13,7 +13,8 @@ BASE_SCORES = {
     "high_frequency_connections": 55,
     "unusual_port": 50,
     "long_tls_session": 45,
-    "misp_error": 10,
+    "ftp_exfiltration": 75,
+    "misp_error": 15,
 }
 
 

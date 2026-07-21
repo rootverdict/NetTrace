@@ -94,3 +94,38 @@ def test_flow_sourced_ips_use_structured_source_for_both_directions():
 
     assert sources["13.107.5.88"] == "flow:tcp:51515"
     assert sources["150.60.21.231"] == "flow:tcp:4444"
+
+
+def test_absolute_form_http_url_is_not_prefixed_twice():
+    http = [HTTPEvent(2.0, "10.0.0.5", "45.33.32.156", "GET", "proxy.local", "http://evil.example/a.exe")]
+
+    iocs = extract_iocs([], http, [], [])
+
+    assert any(ioc.kind == "url" and ioc.value == "http://evil.example/a.exe" for ioc in iocs)
+    assert any(ioc.kind == "domain" and ioc.value == "evil.example" for ioc in iocs)
+    assert not any("proxy.localhttp" in ioc.value for ioc in iocs)
+
+
+def test_connect_target_is_extracted_independently_from_host_header():
+    http = [HTTPEvent(2.0, "10.0.0.5", "45.33.32.156", "CONNECT", "proxy.local", "evil.example:443")]
+
+    iocs = extract_iocs([], http, [], [])
+
+    assert any(ioc.kind == "domain" and ioc.value == "evil.example" for ioc in iocs)
+    assert any(ioc.kind == "url" and ioc.value == "https://evil.example:443" for ioc in iocs)
+
+
+def test_ipv6_iocs_are_canonicalized():
+    flows = [
+        Flow("fd00::1", "2001:4860:4860:0:0:0:0:8888", 50000, 443, "TCP", 1.0, 2.0),
+    ]
+
+    iocs = extract_iocs([], [], [], flows)
+
+    assert any(ioc.kind == "ip" and ioc.value == "2001:4860:4860::8888" for ioc in iocs)
+
+
+def test_ipv6_destination_fallback_produces_valid_bracketed_url():
+    event = HTTPEvent(1.0, "fd00::1", "2001:4860:4860::8888", "GET", "", "/payload")
+
+    assert event.url == "http://[2001:4860:4860::8888]/payload"

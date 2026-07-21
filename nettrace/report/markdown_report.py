@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import ipaddress
+import html
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -21,6 +23,19 @@ COMMON_HOST_TOKENS = (
     "office365.com",
 )
 COMMON_DOMAIN_PREFIXES = ("_ldap.", "_kerberos.", "_gc.", "_kpasswd.", "wpad.")
+INTERNAL_NETWORKS = tuple(
+    ipaddress.ip_network(value)
+    for value in (
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "169.254.0.0/16",
+        "127.0.0.0/8",
+        "fc00::/7",
+        "fe80::/10",
+        "::1/128",
+    )
+)
 
 
 def is_rfc1918(ip: str) -> bool:
@@ -28,14 +43,15 @@ def is_rfc1918(ip: str) -> bool:
         address = ipaddress.ip_address(ip)
     except ValueError:
         return False
-    return any(
-        address in network
-        for network in (
-            ipaddress.ip_network("10.0.0.0/8"),
-            ipaddress.ip_network("172.16.0.0/12"),
-            ipaddress.ip_network("192.168.0.0/16"),
-        )
-    )
+    return any(address.version == network.version and address in network for network in INTERNAL_NETWORKS)
+
+
+def format_ip_port(ip: str, port: int | str) -> str:
+    try:
+        host = f"[{ip}]" if ipaddress.ip_address(ip).version == 6 else ip
+    except ValueError:
+        host = ip
+    return f"{host}:{port}"
 
 
 def is_common_host(value: str) -> bool:
@@ -106,16 +122,16 @@ def top_ips(report: dict[str, Any], victim: str, limit: int = 12) -> list[str]:
             dst_ip = evidence.get("dst_ip", "")
             dst_port = evidence.get("dst_port", 0)
             if src_ip == victim and dst_ip and not is_rfc1918(dst_ip):
-                candidates.append(f"{dst_ip}:{dst_port}")
+                candidates.append(format_ip_port(dst_ip, dst_port))
         elif finding.get("category") in {"unusual_port", "network_beaconing", "tls_c2"}:
             dst_ip = evidence.get("dst_ip", "")
             dst_port = evidence.get("dst_port", "")
             if dst_ip and not is_rfc1918(dst_ip):
-                candidates.append(f"{dst_ip}:{dst_port}" if dst_port else dst_ip)
+                candidates.append(format_ip_port(dst_ip, dst_port) if dst_port else dst_ip)
     for ioc in report.get("iocs", []):
         value = ioc.get("value", "")
         if ioc.get("kind") == "ip" and not is_rfc1918(value):
-            if not any(item == value or item.startswith(f"{value}:") for item in candidates):
+            if not any(item == value or item.startswith(f"{value}:") or item.startswith(f"[{value}]:") for item in candidates):
                 candidates.append(value)
     return unique(candidates, limit)
 
@@ -134,21 +150,33 @@ def attack_techniques(report: dict[str, Any]) -> list[str]:
     return unique(values, 12)
 
 
+def markdown_text(value: str) -> str:
+    return html.escape(str(value).replace("\r", " ").replace("\n", " "), quote=False)
+
+
+def markdown_code(value: str) -> str:
+    sanitized = markdown_text(value)
+    longest_run = max((len(run) for run in re.findall(r"`+", sanitized)), default=0)
+    delimiter = "`" * max(1, longest_run + 1)
+    padding = " " if sanitized.startswith(("`", " ")) or sanitized.endswith(("`", " ")) else ""
+    return f"{delimiter}{padding}{sanitized}{padding}{delimiter}"
+
+
 def bullet_list(values: list[str]) -> str:
     if not values:
         return "- None observed"
-    return "\n".join(f"- `{value}`" for value in values)
+    return "\n".join(f"- {markdown_code(value)}" for value in values)
 
 
 def build_analyst_paragraph(report: dict[str, Any], victim: str, urls: list[str], ips: list[str]) -> str:
     summary = report.get("summary", {})
-    url_text = ", ".join(f"`{url}`" for url in urls[:5]) if urls else "no plaintext HTTP staging URLs"
-    ip_text = ", ".join(f"`{ip}`" for ip in ips[:8]) if ips else "no public C2 candidates"
+    url_text = ", ".join(markdown_code(url) for url in urls[:5]) if urls else "no plaintext HTTP staging URLs"
+    ip_text = ", ".join(markdown_code(ip) for ip in ips[:8]) if ips else "no public C2 candidates"
     return (
-        f"NetTrace analyzed `{report.get('pcap_path', 'unknown')}` and identified `{victim}` as the primary "
+        f"NetTrace analyzed {markdown_code(report.get('pcap_path', 'unknown'))} and identified {markdown_code(victim)} as the primary "
         f"internal host. The capture contains {summary.get('dns_events', 0)} DNS events, "
         f"{summary.get('http_events', 0)} plaintext HTTP requests, {summary.get('tls_events', 0)} TLS SNI events, "
-        f"and {summary.get('flows', 0)} flows. The strongest analyst signal is the combination of HTTP staging "
+        f"{summary.get('ftp_events', 0)} FTP commands, and {summary.get('flows', 0)} flows. The strongest analyst signal is the combination of HTTP staging "
         f"activity ({url_text}) and high-volume or encrypted traffic involving {ip_text}. These behaviors are "
         "consistent with malware staging and command-and-control triage, while heuristic findings should be "
         "validated with packet context."
@@ -163,21 +191,23 @@ def build_markdown(report: dict[str, Any], source: str = "", source_url: str = "
     ips = top_ips(report, victim)
     counts = finding_counts(report)
     techniques = attack_techniques(report)
+    warnings = [str(warning) for warning in report.get("warnings", [])]
 
-    lines = [f"# NetTrace Findings: {Path(report.get('pcap_path', 'pcap')).name}", "", "## Dataset", ""]
+    lines = [f"# NetTrace Findings: {markdown_text(Path(report.get('pcap_path', 'pcap')).name)}", "", "## Dataset", ""]
     if source:
-        lines.append(f"- Source: {source}")
+        lines.append(f"- Source: {markdown_text(source)}")
     if source_url:
-        lines.append(f"- Source page: {source_url}")
+        lines.append(f"- Source page: {markdown_text(source_url)}")
     lines.extend(
         [
-            f"- PCAP analyzed: `{report.get('pcap_path', 'unknown')}`",
+            f"- PCAP analyzed: {markdown_code(report.get('pcap_path', 'unknown'))}",
             "",
             "## Tool Summary",
             "",
             f"- DNS events: {summary.get('dns_events', 0)}",
             f"- HTTP events: {summary.get('http_events', 0)}",
             f"- TLS events: {summary.get('tls_events', 0)}",
+            f"- FTP events: {summary.get('ftp_events', 0)}",
             f"- Flows: {summary.get('flows', 0)}",
             f"- IOCs: {summary.get('iocs', 0)}",
             f"- Findings: {summary.get('findings', 0)}",
@@ -185,6 +215,10 @@ def build_markdown(report: dict[str, Any], source: str = "", source_url: str = "
             f"- High findings: {summary.get('high', 0)}",
             f"- Medium findings: {summary.get('medium', 0)}",
             f"- Low findings: {summary.get('low', 0)}",
+            "",
+            "## Analysis Warnings",
+            "",
+            bullet_list(warnings),
             "",
             "## Analyst Finding",
             "",
@@ -195,7 +229,7 @@ def build_markdown(report: dict[str, Any], source: str = "", source_url: str = "
         ]
     )
     for title, count in counts.most_common():
-        lines.append(f"- {title}: {count}")
+        lines.append(f"- {markdown_text(title)}: {count}")
     lines.extend(
         [
             "",

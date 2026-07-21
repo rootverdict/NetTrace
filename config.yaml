@@ -2,6 +2,7 @@ thresholds:
   beacon_min_events: 5
   beacon_max_cv: 0.25
   beacon_min_interval_seconds: 2
+  beacon_max_group_events: 10000
   dga_entropy_threshold: 3.4
   dga_score_threshold: 0.6
   high_frequency_connections: 50
@@ -15,5 +16,28 @@ intel:
 misp:
   enabled: false
   url: ""
-  api_key: ""
+  api_key_env: NETTRACE_MISP_API_KEY
   verify_ssl: true
+  max_iocs: 5000
+  batch_size: 100
+  timeout_seconds: 10
+
+protocols:
+  http_ports:
+    - 80
+    - 8000
+    - 8080
+    - 8888
+
+limits:
+  max_dns_events: 100000
+  max_http_events: 100000
+  max_tls_events: 100000
+  max_ftp_events: 100000
+  max_flows: 50000
+  max_timeline_entries: 100000
+  max_flow_samples: 256
+  max_tcp_streams: 10000
+  max_tcp_stream_buffer_bytes: 1048576
+  max_tcp_pending_segments: 256
+  max_tcp_total_buffer_bytes: 67108864

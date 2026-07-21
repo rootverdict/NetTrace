@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
-from nettrace.config import load_config
+from scapy.error import Scapy_Exception
+
+from nettrace.config import ConfigError, load_config
 from nettrace.engine import analyze_pcap
 from nettrace.report.html_report import render_html_report
 from nettrace.report.json_export import export_json
@@ -44,30 +47,43 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    args = build_parser().parse_args()
+    parser = build_parser()
+    args = parser.parse_args()
     pcap_path = Path(args.pcap)
     output_dir = Path(args.output)
-    output_dir.mkdir(parents=True, exist_ok=True)
 
-    config = load_config(Path(args.config))
-    report = analyze_pcap(pcap_path, config)
+    try:
+        config = load_config(Path(args.config))
+    except (ConfigError, OSError) as exc:
+        parser.error(f"configuration error: {exc}")
+    try:
+        report = analyze_pcap(pcap_path, config)
+    except (FileNotFoundError, OSError, Scapy_Exception, EOFError) as exc:
+        parser.error(f"analysis error: {exc}")
 
-    stem = pcap_path.stem
-    if not args.no_json:
-        export_json(report, output_dir / f"{stem}_findings.json")
-    if not args.no_html:
-        render_html_report(report, output_dir / f"{stem}_report.html")
-    if not args.no_pdf:
-        render_pdf_report(report, output_dir / f"{stem}_report.pdf")
-    if not args.no_md:
-        md_path = Path(args.md_output) if args.md_output else default_output_path(Path(f"{stem}_findings.json"))
-        md_path.parent.mkdir(parents=True, exist_ok=True)
-        md_path.write_text(
-            build_markdown(report.to_dict(), source=args.source, source_url=args.source_url),
-            encoding="utf-8",
-        )
+    try:
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        stem = pcap_path.stem
+        if not args.no_json:
+            export_json(report, output_dir / f"{stem}_findings.json")
+        if not args.no_html:
+            render_html_report(report, output_dir / f"{stem}_report.html")
+        if not args.no_pdf:
+            render_pdf_report(report, output_dir / f"{stem}_report.pdf")
+        if not args.no_md:
+            md_path = Path(args.md_output) if args.md_output else default_output_path(Path(f"{stem}_findings.json"))
+            md_path.parent.mkdir(parents=True, exist_ok=True)
+            md_path.write_text(
+                build_markdown(report.to_dict(), source=args.source, source_url=args.source_url),
+                encoding="utf-8",
+            )
+    except (OSError, ValueError) as exc:
+        parser.error(f"report output error: {exc}")
 
     print(f"Analysis complete: {len(report.findings)} findings")
+    for warning in report.warnings:
+        print(f"Warning: {warning}", file=sys.stderr)
     print(f"Output directory: {output_dir.resolve()}")
     if not args.no_md:
         print(f"Markdown findings: {md_path.resolve()}")

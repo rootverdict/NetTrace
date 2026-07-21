@@ -102,3 +102,58 @@ def test_default_output_path_uses_findings_folder_and_sample_name():
     path = default_output_path(Path("output/real/example_findings.json"))
 
     assert path == Path("findings/example_FINDINGS.md")
+
+
+def test_markdown_escapes_capture_html_and_backticks():
+    report = sample_report()
+    report["http_events"][0]["url"] = "http://evil/`<img src=x onerror=alert(1)>"
+
+    markdown = build_markdown(report, source="source\n## injected", source_url="<script>alert(1)</script>")
+
+    assert "<img" not in markdown
+    assert "<script" not in markdown
+    assert "source\n## injected" not in markdown
+    assert "&lt;img" in markdown
+
+
+def test_markdown_displays_analysis_warnings():
+    report = sample_report()
+    report["warnings"] = ["HTTP events truncated at 10 entries."]
+
+    markdown = build_markdown(report)
+
+    assert "## Analysis Warnings" in markdown
+    assert "HTTP events truncated at 10 entries." in markdown
+
+
+def test_ipv6_internal_host_and_endpoint_formatting():
+    report = {
+        "flows": [
+            {
+                "src_ip": "fd00::5",
+                "dst_ip": "2606:4700:4700::1111",
+                "src_port": 50000,
+                "dst_port": 443,
+                "packet_count": 20,
+            }
+        ],
+        "findings": [
+            {
+                "category": "high_frequency_connections",
+                "evidence": {
+                    "src_ip": "fd00::5",
+                    "dst_ip": "2606:4700:4700::1111",
+                    "dst_port": 443,
+                },
+            }
+        ],
+        "iocs": [],
+        "http_events": [],
+        "dns_events": [],
+        "tls_events": [],
+    }
+
+    victim = infer_victim_host(report)
+
+    assert victim == "fd00::5"
+    assert top_ips(report, victim) == ["[2606:4700:4700::1111]:443"]

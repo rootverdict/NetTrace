@@ -25,3 +25,6 @@ unusual_port:
 threat_intel_match:
   id: T1071
   name: "Application Layer Protocol"
+ftp_exfiltration:
+  id: T1048.003
+  name: "Exfiltration Over Alternative Protocol: Exfiltration Over Unencrypted Non-C2 Protocol"

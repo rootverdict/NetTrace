@@ -1,3 +1,2 @@
-# Demo entries. Replace or extend with your own intel.
-203.0.113.66
-198.51.100.23
+# Add operational known-bad public IP addresses here, one per line.
+# Documentation ranges are intentionally excluded because IOC extraction filters them.

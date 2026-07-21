@@ -7,7 +7,9 @@ The project is designed for malware traffic analysis, SOC triage, threat hunting
 ## What NetTrace Does
 
 - Parses PCAP files in a single pass
-- Extracts DNS queries, DNS responses, and TTLs
+- Supports IPv4 and IPv6 packet metadata
+- Reassembles bounded TCP streams for HTTP, TLS ClientHello, and FTP control traffic
+- Extracts UDP and TCP DNS queries, responses, and per-answer TTLs
 - Extracts plaintext HTTP methods, hosts, URIs, URLs, and user agents
 - Extracts TLS ClientHello SNI values on common TLS ports
 - Builds IP flow and conversation metadata
@@ -17,6 +19,7 @@ The project is designed for malware traffic analysis, SOC triage, threat hunting
 - Scores possible DGA domains using entropy and character-pattern analysis
 - Applies a DGA allowlist for Windows, Microsoft, local, and known-good infrastructure
 - Detects suspicious HTTP behavior and executable/script downloads
+- Detects cleartext FTP credentials and file uploads without recording passwords
 - Detects high-frequency flows and unusual ports
 - Supports local IOC matching
 - Supports optional MISP enrichment
@@ -25,6 +28,7 @@ The project is designed for malware traffic analysis, SOC triage, threat hunting
 - Builds a chronological activity timeline
 - Adds packet numbers and Wireshark `frame.number` filters to report evidence
 - Exports JSON, HTML, and PDF reports
+- Applies configurable flow, event, aggregate TCP stream-buffer, and timeline limits with report warnings
 
 ## Architecture
 
@@ -240,7 +244,7 @@ The Emotet showcase analysis produced:
 - 8 plaintext HTTP requests
 - 32 TLS SNI events
 - 813 flows
-- 138 IOCs
+- 180 IOCs
 - 31 findings
 
 The analyst write-up identifies Emotet staging URLs, C2 infrastructure, high-frequency encrypted flows, and ATT&CK-mapped behavior.
@@ -260,28 +264,39 @@ Rules and tunable values live in `nettrace/rules/`:
 - `suspicious_ports.yaml` - lists suspicious or non-standard ports
 - `dga_allowlist.yaml` - suppresses known benign DGA false positives
 
+Additional plaintext HTTP ports can be configured under `protocols.http_ports` in `config.yaml`.
+
 ## MISP Integration
 
 MISP enrichment is optional. NetTrace works offline with local IOC lists in `nettrace/data/`.
 
-To enable MISP, edit `config.yaml`:
+To enable MISP without storing credentials in the repository, set the API key in an environment variable and edit `config.yaml`:
+
+```powershell
+$env:NETTRACE_MISP_API_KEY = "YOUR_API_KEY"
+```
 
 ```yaml
 misp:
   enabled: true
   url: "https://misp.example.local"
-  api_key: "YOUR_API_KEY"
+  api_key_env: NETTRACE_MISP_API_KEY
   verify_ssl: true
+  max_iocs: 5000
+  batch_size: 100
+  timeout_seconds: 10
 ```
 
 ## Technical Notes
 
 - PCAP files are processed in a single pass.
-- NetTrace keeps extracted events and flow metadata, not every raw packet.
+- NetTrace keeps bounded event and flow metadata, not every raw packet. Limits are configurable under `limits` in `config.yaml`.
 - Reports include packet references so findings can be rechecked in Wireshark with `frame.number` filters.
 - HTTP parsing is plaintext HTTP only.
 - HTTPS payloads cannot be inspected unless the traffic is decrypted before analysis.
 - TLS analysis focuses on SNI, destination IP, port, timing, and flow duration.
+- TCP reassembly buffers a bounded number of out-of-order segments; streams with persistent gaps or exhausted limits are discarded.
+- IPv4 and IPv6 fragment reassembly is bounded; incomplete, overlapping, or invalid fragmented datagrams are discarded with a report warning.
 - PDF reports are generated with ReportLab for a Windows-friendly Python setup.
 - Scapy may print `No libpcap provider available` on Windows. This is harmless for offline PCAP parsing.
 

@@ -1,4 +1,4 @@
-from scapy.all import IP, TCP
+from scapy.all import IP, Raw, TCP
 
 from nettrace.analysis.port_analyzer import analyze_flows
 from nettrace.parsers.flow_builder import build_flows, flow_key
@@ -77,3 +77,52 @@ def test_flow_builder_infers_direction_when_capture_starts_mid_session():
     assert flows[0].dst_port == 4444
     assert flows[0].packet_numbers == [1, 2]
     assert any(finding.category == "unusual_port" for finding in findings)
+
+
+def test_flow_builder_bounds_per_packet_samples():
+    packets = []
+    for index in range(20):
+        packet = IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50000, dport=443, seq=index)
+        packet.time = float(index)
+        packets.append(packet)
+
+    flows = {}
+    from nettrace.parsers.flow_builder import update_flow
+
+    for number, packet in enumerate(packets, 1):
+        update_flow(flows, packet, number, sample_limit=4)
+
+    flow = next(iter(flows.values()))
+    assert flow.packet_count == 20
+    assert len(flow.timestamps) == 4
+    assert len(flow.packet_numbers) == 8
+
+
+def test_flow_builder_enforces_flow_limit():
+    from nettrace.parsers.flow_builder import update_flow
+
+    flows = {}
+    first = IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50000, dport=443)
+    second = IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50001, dport=443)
+    first.time = 1.0
+    second.time = 2.0
+
+    assert update_flow(flows, first, 1, max_flows=1)
+    assert not update_flow(flows, second, 2, max_flows=1)
+    assert len(flows) == 1
+
+
+def test_reused_tcp_tuple_creates_separate_connection_flows():
+    packets = [
+        IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50000, dport=443, seq=100, flags="S"),
+        IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50000, dport=443, seq=101, flags="PA") / Raw(load=b"one"),
+        IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50000, dport=443, seq=5000, flags="S"),
+        IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50000, dport=443, seq=5001, flags="PA") / Raw(load=b"two"),
+    ]
+    for number, packet in enumerate(packets, 1):
+        packet.time = float(number)
+
+    flows = build_flows(packets)
+
+    assert len(flows) == 2
+    assert [flow.packet_count for flow in flows] == [2, 2]

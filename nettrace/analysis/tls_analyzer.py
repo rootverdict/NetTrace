@@ -3,14 +3,25 @@ from __future__ import annotations
 from nettrace.analysis.evidence import flow_packet_evidence, packet_evidence
 from nettrace.models.events import Flow, TLSEvent
 from nettrace.models.findings import Finding
+from nettrace.parsers.tls_extractor import TLS_PORTS
 
 
 def analyze_tls_events(tls_events: list[TLSEvent], flows: list[Flow], thresholds: dict) -> list[Finding]:
     findings: list[Finding] = []
     long_session = float(thresholds.get("long_tls_session_seconds", 900))
     sni_length_threshold = int(thresholds.get("tls_sni_length_threshold", 24))
+    tls_connections = {
+        (event.src_ip, event.dst_ip, event.src_port, event.dst_port)
+        for event in tls_events
+        if event.src_port
+    }
+    tls_endpoints = {(event.src_ip, event.dst_ip, event.dst_port) for event in tls_events}
     for flow in flows:
-        if flow.dst_port == 443 and flow.duration >= long_session:
+        confirmed_tls = (
+            (flow.src_ip, flow.dst_ip, flow.src_port, flow.dst_port) in tls_connections
+            or (flow.src_ip, flow.dst_ip, flow.dst_port) in tls_endpoints
+        )
+        if flow.protocol == "TCP" and flow.dst_port in TLS_PORTS and confirmed_tls and flow.duration >= long_session:
             findings.append(
                 Finding(
                     title="Long TLS session",

@@ -6,26 +6,28 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 
 ## Scan Summary
 
-| Sample | DNS | HTTP | TLS | Flows | IOCs | Findings |
-|---|---:|---:|---:|---:|---:|---:|
-| Emotet Epoch 5 | 327 | 8 | 32 | 813 | 138 | 31 |
-| Raspberry Robin | 4 | 0 | 21 | 51 | 21 | 43 |
-| Redtail Linux malware | 0 | 3 | 0 | 40687 | 40651 | 2 |
-| AgentTesla FTP variant | 6 | 0 | 1 | 10 | 6 | 0 |
-| SmartApeSG to NetSupport RAT | 8 | 2 | 9 | 16 | 11 | 5 |
+| Sample | DNS | HTTP | TLS | FTP | Flows | IOCs | Findings |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Emotet Epoch 5 | 327 | 8 | 32 | 0 | 813 | 180 | 32 |
+| Raspberry Robin | 4 | 0 | 21 | 0 | 51 | 21 | 42 |
+| Redtail Linux malware | 0 | 3 | 0 | 0 | 40687 | 40650 | 2 |
+| AgentTesla FTP variant | 6 | 0 | 1 | 16 | 10 | 7 | 6 |
+| SmartApeSG to NetSupport RAT | 8 | 2 | 9 | 0 | 16 | 11 | 4 |
 
 ## Aggregate Totals
 
 - DNS events: 345
 - HTTP events: 13
 - TLS events: 63
+- FTP events: 16
 - Flows: 41577
-- IOCs: 40827
-- Findings: 81
+- IOCs: 40869
+- Findings: 86
 
 ## ATT&CK Techniques Observed
 
 - `T1020 - Automated Exfiltration`
+- `T1048.003 - Exfiltration Over Alternative Protocol: Exfiltration Over Unencrypted Non-C2 Protocol`
 - `T1090 - Proxy`
 - `T1571 - Non-Standard Port`
 - `T1573 - Encrypted Channel`
@@ -35,12 +37,13 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 - Source: https://www.malware-traffic-analysis.net/2023/03/17/index.html
 - PCAP: `samples\real\2023-03-17-Emotet-E5-infection-traffic.pcap`
 - Primary internal host heuristic: `10.3.18.101`
-- Findings: 31
+- Findings: 32
 
 ### Finding Types
 
 - High-frequency connection: 28
 - Long TLS session: 2
+- Possible beaconing behavior: 1
 - Unusually long TLS SNI: 1
 
 ### Notable URLs
@@ -78,13 +81,12 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 - Source: https://www.malware-traffic-analysis.net/2024/11/14/index.html
 - PCAP: `samples\real\2024-11-14-Raspberry-Robin-infection-traffic.pcap`
 - Primary internal host heuristic: `10.0.0.101`
-- Findings: 43
+- Findings: 42
 
 ### Finding Types
 
 - High-frequency connection: 26
 - Connection to suspicious non-standard port: 16
-- Long TLS session: 1
 
 ### Notable URLs
 
@@ -144,11 +146,16 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 - Source: https://www.malware-traffic-analysis.net/2024/12/04/index.html
 - PCAP: `samples\real\2024-12-04-AgentTesla-variant-using-FTP.pcap`
 - Primary internal host heuristic: `10.12.4.101`
-- Findings: 0
+- Findings: 6
 
 ### Finding Types
 
-- None observed
+- File upload over FTP: 4
+- Cleartext FTP credentials: 2
+
+### ATT&CK Techniques
+
+- `T1048.003 - Exfiltration Over Alternative Protocol: Exfiltration Over Unencrypted Non-C2 Protocol`
 
 ### Notable URLs
 
@@ -157,6 +164,7 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 ### Notable Domains
 
 - `api.ipify.org`
+- `ercolina-usa.com`
 - `ftp.ercolina-usa.com`
 
 ### Notable IPs And Ports
@@ -171,12 +179,11 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 - Source: https://www.malware-traffic-analysis.net/2024/12/17/index.html
 - PCAP: `samples\real\2024-12-17-SmartApeSG-to-NetSupport-RAT.pcap`
 - Primary internal host heuristic: `10.12.17.101`
-- Findings: 5
+- Findings: 4
 
 ### Finding Types
 
 - High-frequency connection: 4
-- Long TLS session: 1
 
 ### Notable URLs
 

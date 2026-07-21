@@ -18,9 +18,7 @@ def _load_lines(path: str) -> set[str]:
 
 
 def event_url(event: HTTPEvent) -> str:
-    host = event.host or event.dst_ip
-    scheme = "http"
-    return f"{scheme}://{host}{event.uri}"
+    return event.url
 
 
 def is_executable_uri(uri: str) -> bool:
