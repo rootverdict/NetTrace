@@ -1,7 +1,7 @@
 # NetTrace
 
 [![CI](https://github.com/rootverdict/NetTrace/actions/workflows/ci.yml/badge.svg)](https://github.com/rootverdict/NetTrace/actions/workflows/ci.yml)
-![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-3776AB)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -74,6 +74,16 @@ Report layer
   - HTML report
   - PDF report
 ```
+
+## Design Decisions
+
+- **Behavior before labels:** NetTrace reports observable patterns such as regular callback intervals, suspicious downloads, and unusual ports instead of claiming a malware-family verdict from network traffic alone.
+- **Reassemble before parsing:** bounded IP and TCP reassembly recovers protocol messages split across packets while limiting memory use on malformed or adversarial captures.
+- **Explainable detections:** findings retain packet numbers, evidence, and Wireshark filters so an analyst can verify each signal against the original capture.
+- **Offline-first enrichment:** local IOC matching works without sharing capture data; MISP integration is optional for teams that operate their own threat-intelligence service.
+- **Machine and analyst outputs:** JSON supports automation, while HTML and PDF provide portable reports for investigation and review.
+
+Beaconing uses interval regularity because command-and-control callbacks often repeat on a cadence even when payload contents are encrypted. NetTrace treats that cadence as a triage signal and combines it with flow volume, destination context, and other findings to reduce overconfident conclusions.
 
 ## Project Structure
 

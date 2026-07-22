@@ -148,3 +148,95 @@ def test_misp_batches_queries_applies_timeout_and_caps_iocs(monkeypatch):
     ]
     assert sum(finding.category == "threat_intel_match" for finding in findings) == 3
     assert any(finding.title == "MISP lookup truncated" for finding in findings)
+
+
+def test_disabled_misp_skips_lookup():
+    assert MispLookup(enabled=False).match_iocs([IOC("domain", "bad.example", "dns")]) == []
+
+
+def test_misp_import_failure_returns_low_warning(monkeypatch):
+    monkeypatch.setitem(sys.modules, "pymisp", None)
+    lookup = MispLookup(enabled=True, url="https://misp.example", api_key="token")
+
+    findings = lookup.match_iocs([IOC("domain", "bad.example", "dns")])
+
+    assert len(findings) == 1
+    assert findings[0].title == "MISP lookup skipped"
+    assert findings[0].severity == "low"
+
+
+def test_misp_client_falls_back_when_timeout_argument_is_unsupported(monkeypatch):
+    calls = []
+
+    class LegacyMISP:
+        def __init__(self, url, api_key, verify_ssl, **kwargs):
+            calls.append(kwargs)
+            if "timeout" in kwargs:
+                raise TypeError("timeout is unsupported")
+
+        def search(self, controller, value):
+            return {"Attribute": []}
+
+    module = types.ModuleType("pymisp")
+    module.PyMISP = LegacyMISP
+    monkeypatch.setitem(sys.modules, "pymisp", module)
+
+    findings = MispLookup(
+        enabled=True, url="https://misp.example", api_key="token"
+    ).match_iocs([IOC("domain", "bad.example", "dns")])
+
+    assert findings == []
+    assert calls == [{"timeout": 10.0}, {}]
+
+
+def test_misp_query_error_is_reported_and_later_batches_continue(monkeypatch):
+    class SometimesFailingMISP:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def search(self, controller, value):
+            if value == ["fail.example"]:
+                raise RuntimeError("temporary failure")
+            return {"Attribute": [{"value": value[0]}]}
+
+    module = types.ModuleType("pymisp")
+    module.PyMISP = SometimesFailingMISP
+    monkeypatch.setitem(sys.modules, "pymisp", module)
+    lookup = MispLookup(
+        enabled=True,
+        url="https://misp.example",
+        api_key="token",
+        batch_size=1,
+    )
+
+    findings = lookup.match_iocs(
+        [IOC("domain", "fail.example", "dns"), IOC("domain", "hit.example", "dns")]
+    )
+
+    assert any(finding.category == "misp_error" for finding in findings)
+    assert any(finding.evidence.get("ioc_value") == "hit.example" for finding in findings)
+
+
+def test_misp_normalizes_ip_and_reads_object_attributes(monkeypatch):
+    attribute = types.SimpleNamespace(value="2001:0db8:0:0:0:0:0:1")
+    install_fake_pymisp(monkeypatch, [attribute])
+    lookup = MispLookup(enabled=True, url="https://misp.example", api_key="token")
+
+    findings = lookup.match_iocs([IOC("ip", "2001:db8::1", "flow", packet_number=12)])
+
+    assert len(findings) == 1
+    assert findings[0].evidence["ioc_value"] == "2001:db8::1"
+    assert findings[0].evidence["packet_number"] == 12
+
+
+def test_misp_matches_secondary_attribute_values(monkeypatch):
+    install_fake_pymisp(
+        monkeypatch,
+        {"Attribute": [{"value1": "first", "value2": "https://bad.example/a"}]},
+    )
+    lookup = MispLookup(enabled=True, url="https://misp.example", api_key="token")
+
+    findings = lookup.match_iocs([IOC("url", "https://bad.example/a", "http")])
+
+    assert len(findings) == 1
+    assert findings[0].category == "threat_intel_match"
