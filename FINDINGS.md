@@ -6,20 +6,21 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 
 ## Scan Summary
 
-| Sample | DNS | HTTP | TLS | FTP | Flows | IOCs | Findings |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Emotet Epoch 5 | 327 | 8 | 32 | 0 | 813 | 180 | 32 |
-| Raspberry Robin | 4 | 0 | 21 | 0 | 51 | 21 | 42 |
-| Redtail Linux malware | 0 | 3 | 0 | 0 | 40687 | 40650 | 2 |
-| AgentTesla FTP variant | 6 | 0 | 1 | 16 | 10 | 7 | 6 |
-| SmartApeSG to NetSupport RAT | 8 | 2 | 9 | 0 | 16 | 11 | 4 |
+| Sample | Packets | DNS | HTTP | TLS | FTP | Flows | IOCs | Findings |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Emotet Epoch 5 | 19895 | 327 | 8 | 32 | 0 | 813 | 180 | 32 |
+| Raspberry Robin | 91481 | 4 | 0 | 0 | 0 | 51 | 20 | 42 |
+| Redtail Linux malware | 43041 | 0 | 3 | 0 | 0 | 40687 | 40650 | 2 |
+| AgentTesla FTP variant | 182 | 6 | 0 | 1 | 14 | 10 | 7 | 6 |
+| SmartApeSG to NetSupport RAT | 16931 | 8 | 32 | 9 | 0 | 16 | 12 | 4 |
 
 ## Aggregate Totals
 
+- Packets: 171530
 - DNS events: 345
-- HTTP events: 13
-- TLS events: 63
-- FTP events: 16
+- HTTP events: 43
+- TLS events: 42
+- FTP events: 14
 - Flows: 41577
 - IOCs: 40869
 - Findings: 86
@@ -188,6 +189,7 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 ### Notable URLs
 
 - `http://geo.netsupportsoftware.com/location/loca.asp`
+- `http://194.180.191.64/fakeurl.htm`
 
 ### Notable Domains
 

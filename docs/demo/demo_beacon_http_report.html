@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NetTrace Report</title>
+  <style>
+    :root { color-scheme: dark; --bg: #07111f; --panel: #0e1b2d; --line: #223650; --muted: #8fa6c0; --text: #e8f0fa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: radial-gradient(circle at 80% -10%, #123d55 0, var(--bg) 36%); color: var(--text); font: 14px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 32px 0 64px; }
+    header { padding: 28px; border: 1px solid #1d4962; border-radius: 18px; background: linear-gradient(135deg, rgba(14, 35, 55, .96), rgba(7, 17, 31, .94)); box-shadow: 0 24px 80px rgba(0, 0, 0, .28); }
+    .eyebrow { margin: 0 0 6px; color: #67e8f9; font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(28px, 5vw, 46px); letter-spacing: -.03em; }
+    h2 { margin: 34px 0 14px; font-size: 21px; }
+    h3 { margin: 0 0 7px; font-size: 16px; }
+    .path { margin: 10px 0 0; color: var(--muted); overflow-wrap: anywhere; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 12px; margin-top: 18px; }
+    .card { padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: rgba(14, 27, 45, .84); }
+    .card span { display: block; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .card strong { display: block; margin-top: 3px; font-size: 24px; }
+    .panel { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: rgba(14, 27, 45, .84); }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { padding: 11px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    th { color: #a9c4df; background: #13243a; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+    .finding { margin: 10px 0; padding: 16px 18px; border: 1px solid var(--line); border-left: 4px solid #64748b; border-radius: 12px; background: rgba(14, 27, 45, .84); }
+    .finding p { margin: 5px 0; color: #c7d5e5; }
+    .critical { border-left-color: #fb7185; }
+    .high { border-left-color: #f87171; }
+    .medium { border-left-color: #fbbf24; }
+    .low { border-left-color: #60a5fa; }
+    .badge { display: inline-block; margin-right: 7px; padding: 2px 8px; border-radius: 999px; background: #183047; color: #9bdfff; font-size: 11px; font-weight: 800; letter-spacing: .05em; }
+    details { margin-top: 10px; color: var(--muted); }
+    summary { cursor: pointer; }
+    code { display: block; margin-top: 8px; padding: 12px; overflow: auto; border-radius: 8px; background: #07101d; color: #b9d4ec; white-space: pre-wrap; }
+    .warning { padding: 12px 15px; border: 1px solid #784c17; border-radius: 10px; background: #2a1d0c; color: #fbd38d; }
+    .empty { padding: 18px; color: var(--muted); }
+    @media (max-width: 640px) { main { width: min(100% - 24px, 1180px); } th, td { padding: 9px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">Offline PCAP intelligence</p>
+    <h1>NetTrace Analysis Report</h1>
+    <p class="path"><strong>Capture:</strong> samples\suspicious\demo_beacon_http.pcap</p>
+    <div class="cards">
+      <div class="card"><span>Packets</span><strong>8</strong></div>
+      <div class="card"><span>Flows</span><strong>3</strong></div>
+      <div class="card"><span>IOCs</span><strong>3</strong></div>
+      <div class="card"><span>Findings</span><strong>6</strong></div>
+      <div class="card"><span>High / Critical</span><strong>3</strong></div>
+    </div>
+  </header>
+
+
+  <h2>Summary</h2>
+  <div class="panel"><table>
+    <tr><th>Metric</th><th>Count</th></tr>
+    <tr><td>Packets</td><td>8</td></tr>
+    <tr><td>Dns Events</td><td>1</td></tr>
+    <tr><td>Http Events</td><td>1</td></tr>
+    <tr><td>Tls Events</td><td>0</td></tr>
+    <tr><td>Ftp Events</td><td>0</td></tr>
+    <tr><td>Flows</td><td>3</td></tr>
+    <tr><td>Iocs</td><td>3</td></tr>
+    <tr><td>Findings</td><td>6</td></tr>
+    <tr><td>Critical</td><td>2</td></tr>
+    <tr><td>High</td><td>1</td></tr>
+    <tr><td>Medium</td><td>3</td></tr>
+    <tr><td>Low</td><td>0</td></tr>
+  </table></div>
+
+  <h2>Findings</h2>
+  <div class="finding critical">
+    <h3><span class="badge">CRITICAL</span>Local threat intel match</h3>
+    <p>IOC matched the local known-bad intelligence list.</p>
+    <p><strong>MITRE ATT&CK:</strong> T1071.001 Application Layer Protocol: Web Protocols</p>
+    <p><strong>Score:</strong> 95</p>
+    <details><summary>Packet evidence</summary><code>{
+  &#34;ioc_type&#34;: &#34;domain&#34;,
+  &#34;ioc_value&#34;: &#34;malware-test.example&#34;,
+  &#34;source&#34;: &#34;http_host&#34;,
+  &#34;packet_number&#34;: 8,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
+}</code></details>
+  </div>
+  <div class="finding critical">
+    <h3><span class="badge">CRITICAL</span>Local threat intel match</h3>
+    <p>IOC matched the local known-bad intelligence list.</p>
+    <p><strong>MITRE ATT&CK:</strong> T1071.004 Application Layer Protocol: DNS</p>
+    <p><strong>Score:</strong> 95</p>
+    <details><summary>Packet evidence</summary><code>{
+  &#34;ioc_type&#34;: &#34;domain&#34;,
+  &#34;ioc_value&#34;: &#34;xj3k9q2z7m1p0a8c.biz&#34;,
+  &#34;source&#34;: &#34;dns&#34;,
+  &#34;packet_number&#34;: 7,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 7&#34;
+}</code></details>
+  </div>
+  <div class="finding high">
+    <h3><span class="badge">HIGH</span>Possible DGA domain</h3>
+    <p>Domain structure has high entropy and weak language-like character patterns.</p>
+    <p><strong>MITRE ATT&CK:</strong> T1568.002 Dynamic Resolution: Domain Generation Algorithms</p>
+    <p><strong>Score:</strong> 70</p>
+    <details><summary>Packet evidence</summary><code>{
+  &#34;domain&#34;: &#34;xj3k9q2z7m1p0a8c.biz&#34;,
+  &#34;entropy&#34;: 4.0,
+  &#34;dga_score&#34;: 0.981,
+  &#34;packet_number&#34;: 7,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 7&#34;
+}</code></details>
+  </div>
+  <div class="finding medium">
+    <h3><span class="badge">MEDIUM</span>Suspicious HTTP user agent</h3>
+    <p>HTTP request used a user agent that appears in the local suspicious list.</p>
+    <p><strong>MITRE ATT&CK:</strong> T1071.001 Application Layer Protocol: Web Protocols</p>
+    <p><strong>Score:</strong> 65</p>
+    <details><summary>Packet evidence</summary><code>{
+  &#34;host&#34;: &#34;malware-test.example&#34;,
+  &#34;uri&#34;: &#34;/payload.exe&#34;,
+  &#34;user_agent&#34;: &#34;python-requests/2.28&#34;,
+  &#34;src_ip&#34;: &#34;10.0.0.5&#34;,
+  &#34;dst_ip&#34;: &#34;198.51.100.23&#34;,
+  &#34;packet_number&#34;: 8,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
+}</code></details>
+  </div>
+  <div class="finding medium">
+    <h3><span class="badge">MEDIUM</span>Executable download over HTTP</h3>
+    <p>HTTP URI suggests retrieval of an executable or script payload.</p>
+    <p><strong>MITRE ATT&CK:</strong> T1071.001 Application Layer Protocol: Web Protocols</p>
+    <p><strong>Score:</strong> 65</p>
+    <details><summary>Packet evidence</summary><code>{
+  &#34;url&#34;: &#34;http://malware-test.example/payload.exe&#34;,
+  &#34;method&#34;: &#34;GET&#34;,
+  &#34;packet_number&#34;: 8,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
+}</code></details>
+  </div>
+  <div class="finding medium">
+    <h3><span class="badge">MEDIUM</span>Connection to suspicious non-standard port</h3>
+    <p>Traffic used a port commonly seen in malware labs, backdoors, or tunneling.</p>
+    <p><strong>MITRE ATT&CK:</strong> T1571 Non-Standard Port</p>
+    <p><strong>Score:</strong> 50</p>
+    <details><summary>Packet evidence</summary><code>{
+  &#34;src_ip&#34;: &#34;10.0.0.5&#34;,
+  &#34;dst_ip&#34;: &#34;203.0.113.66&#34;,
+  &#34;dst_port&#34;: 4444,
+  &#34;protocol&#34;: &#34;TCP&#34;,
+  &#34;first_packet_number&#34;: 1,
+  &#34;packet_numbers_sample&#34;: [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  &#34;wireshark_filter&#34;: &#34;frame.number in {1 2 3 4 5 6}&#34;
+}</code></details>
+  </div>
+
+  <h2>IOCs</h2>
+  <div class="panel"><table>
+    <tr><th>Type</th><th>Value</th><th>Source</th></tr>
+    <tr><td>domain</td><td>malware-test.example</td><td>http_host</td></tr>
+    <tr><td>domain</td><td>xj3k9q2z7m1p0a8c.biz</td><td>dns</td></tr>
+    <tr><td>url</td><td>http://malware-test.example/payload.exe</td><td>http_request</td></tr>
+  </table></div>
+
+  <h2>Timeline</h2>
+  <div class="panel"><table>
+    <tr><th>Timestamp</th><th>Type</th><th>Summary</th></tr>
+    <tr><td>0.000</td><td>flow</td><td>10.0.0.5:50000 -&gt; 203.0.113.66:4444 TCP</td></tr>
+    <tr><td>0.000</td><td>finding</td><td>Connection to suspicious non-standard port</td></tr>
+    <tr><td>65.000</td><td>dns</td><td>xj3k9q2z7m1p0a8c.biz</td></tr>
+    <tr><td>65.000</td><td>finding</td><td>Possible DGA domain</td></tr>
+    <tr><td>65.000</td><td>flow</td><td>10.0.0.5:53000 -&gt; 8.8.8.8:53 UDP</td></tr>
+    <tr><td>70.000</td><td>http</td><td>http://malware-test.example/payload.exe</td></tr>
+    <tr><td>70.000</td><td>flow</td><td>10.0.0.5:51515 -&gt; 198.51.100.23:80 TCP</td></tr>
+    <tr><td>70.000</td><td>finding</td><td>Suspicious HTTP user agent</td></tr>
+    <tr><td>70.000</td><td>finding</td><td>Executable download over HTTP</td></tr>
+  </table></div>
+</main>
+</body>
+</html>

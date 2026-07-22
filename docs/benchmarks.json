@@ -1,0 +1,55 @@
+{
+  "environment": {
+    "platform": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.10",
+    "processor": "Intel64 Family 6 Model 165 Stepping 3, GenuineIntel"
+  },
+  "repeat": 1,
+  "results": [
+    {
+      "sample": "2023-03-17-Emotet-E5-infection-traffic.pcap",
+      "size_bytes": 13146516,
+      "packets": 19895,
+      "peak_rss_mib": 79.7,
+      "flows": 813,
+      "findings": 32,
+      "median_seconds": 9.881
+    },
+    {
+      "sample": "2024-11-14-Raspberry-Robin-infection-traffic.pcap",
+      "size_bytes": 77329090,
+      "packets": 91481,
+      "peak_rss_mib": 82.0,
+      "flows": 51,
+      "findings": 42,
+      "median_seconds": 44.47
+    },
+    {
+      "sample": "2024-11-24-infection-by-Redtail-bash-script-from-45.202.35_190.pcap",
+      "size_bytes": 5045555,
+      "packets": 43041,
+      "peak_rss_mib": 151.9,
+      "flows": 40687,
+      "findings": 2,
+      "median_seconds": 22.387
+    },
+    {
+      "sample": "2024-12-04-AgentTesla-variant-using-FTP.pcap",
+      "size_bytes": 56400,
+      "packets": 182,
+      "peak_rss_mib": 76.5,
+      "flows": 10,
+      "findings": 6,
+      "median_seconds": 0.081
+    },
+    {
+      "sample": "2024-12-17-SmartApeSG-to-NetSupport-RAT.pcap",
+      "size_bytes": 23115175,
+      "packets": 16931,
+      "peak_rss_mib": 77.5,
+      "flows": 16,
+      "findings": 4,
+      "median_seconds": 8.552
+    }
+  ]
+}

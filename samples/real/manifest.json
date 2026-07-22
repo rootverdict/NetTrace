@@ -1,0 +1,46 @@
+{
+  "source": "Malware-Traffic-Analysis.net",
+  "warning": "These captures contain real malware traffic and may trigger security products. Handle only in an isolated analysis environment.",
+  "samples": [
+    {
+      "name": "Emotet Epoch 5",
+      "filename": "2023-03-17-Emotet-E5-infection-traffic.pcap",
+      "size_bytes": 13146516,
+      "sha256": "79b7c5a395ddb5b6825d36d9521d283ccbda1d9b5fa217582a220887b33eaffc",
+      "source_url": "https://www.malware-traffic-analysis.net/2023/03/17/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2023/03/17/2023-03-17-Emotet-E5-infection-traffic.pcap.zip"
+    },
+    {
+      "name": "Raspberry Robin",
+      "filename": "2024-11-14-Raspberry-Robin-infection-traffic.pcap",
+      "size_bytes": 77329090,
+      "sha256": "b72197ddcfb0914aa6cff0fe2e43d1222401f39b4f8d978ef96a862e11b47add",
+      "source_url": "https://www.malware-traffic-analysis.net/2024/11/14/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2024/11/14/2024-11-14-Raspberry-Robin-infection-traffic.pcap.zip"
+    },
+    {
+      "name": "Redtail Linux malware",
+      "filename": "2024-11-24-infection-by-Redtail-bash-script-from-45.202.35_190.pcap",
+      "size_bytes": 5045555,
+      "sha256": "a243a65c94a7dec11359419d4df676c20756ebd3730c14dcb6d070c3fe92049e",
+      "source_url": "https://www.malware-traffic-analysis.net/2024/11/24/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2024/11/24/2024-11-24-infection-by-Redtail-bash-script-from-45.202.35_190.pcap.zip"
+    },
+    {
+      "name": "AgentTesla FTP variant",
+      "filename": "2024-12-04-AgentTesla-variant-using-FTP.pcap",
+      "size_bytes": 56400,
+      "sha256": "346c76a023ef2bc5e31fd913fbcfd4c62bb26e1c4beaf0ef28b4a76f59235fa0",
+      "source_url": "https://www.malware-traffic-analysis.net/2024/12/04/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2024/12/04/2024-12-04-AgentTesla-variant-using-FTP.pcap.zip"
+    },
+    {
+      "name": "SmartApeSG to NetSupport RAT",
+      "filename": "2024-12-17-SmartApeSG-to-NetSupport-RAT.pcap",
+      "size_bytes": 23115175,
+      "sha256": "3d4d0b98311d7edd4e00def085450db692e62ba3f626075e7cd633f0cc340b86",
+      "source_url": "https://www.malware-traffic-analysis.net/2024/12/17/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2024/12/17/2024-12-17-SmartApeSG-to-NetSupport-RAT.pcap.zip"
+    }
+  ]
+}

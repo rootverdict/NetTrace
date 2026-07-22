@@ -1,8 +1,17 @@
 # NetTrace
 
+[![CI](https://github.com/rootverdict/NetTrace/actions/workflows/ci.yml/badge.svg)](https://github.com/rootverdict/NetTrace/actions/workflows/ci.yml)
+![Coverage](https://img.shields.io/badge/coverage-86%25-brightgreen)
+![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-3776AB)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 NetTrace is a Python malware traffic analysis platform for offline PCAP analysis. It extracts network artifacts, identifies suspicious behavior, maps findings to MITRE ATT&CK techniques, and generates analyst-ready JSON, HTML, and PDF reports.
 
-The project is designed for malware traffic analysis, SOC triage, threat hunting practice, and resume-ready detection engineering work.
+The project is designed for malware traffic analysis, SOC triage, threat hunting practice, and detection engineering work.
+
+![NetTrace generated PDF report preview](docs/assets/nettrace-report.png)
+
+Quick proof: [PDF demo report](docs/demo/demo_beacon_http_report.pdf) | [HTML demo report](docs/demo/demo_beacon_http_report.html) | [validation matrix](docs/VALIDATION.md) | [benchmarks](docs/BENCHMARKS.md)
 
 ## What NetTrace Does
 
@@ -75,6 +84,11 @@ NetTrace/
 |-- main.py
 |-- config.yaml
 |-- FINDINGS.md
+|-- docs/
+|   |-- VALIDATION.md
+|   |-- BENCHMARKS.md
+|   |-- assets/
+|   |-- demo/
 |-- findings/
 |-- requirements.txt
 |-- nettrace/
@@ -93,11 +107,25 @@ NetTrace/
 
 ## Install
 
+On Windows, the reproducible setup script checks for Python 3.12, creates `.venv`, installs the project, and runs the test suite:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup_dev.ps1
+```
+
+To deliberately recreate an existing `.venv`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\setup_dev.ps1 -Recreate
+```
+
+Manual setup is also supported:
+
 Create and activate a virtual environment:
 
 ```powershell
-python -m venv venv
-.\venv\Scripts\activate
+py -3.12 -m venv .venv
+.\.venv\Scripts\activate
 ```
 
 Install dependencies:
@@ -111,14 +139,16 @@ This installs the `nettrace` console command and the test dependency. If you pre
 ## Run Tests
 
 ```powershell
-python -m pytest
+python -m pytest --cov=nettrace --cov-report=term
 ```
 
 Expected result:
 
 ```text
-All tests should pass.
+110+ tests pass and total coverage remains at or above the enforced 80% threshold.
 ```
+
+The same checks run automatically on Python 3.11 and 3.12 through GitHub Actions.
 
 ## Run the Safe Demo
 
@@ -224,7 +254,22 @@ NetTrace was validated against 5 real public Malware-Traffic-Analysis.net PCAP s
 - AgentTesla - credential-stealer traffic using FTP behavior
 - NetSupport RAT - remote access malware traffic
 
-Included real PCAP files:
+The large real PCAPs are intentionally not stored in Git. Their source URLs, extracted-file sizes, and SHA-256 hashes are recorded in `samples/real/manifest.json`. Existing local copies remain usable.
+
+Verify local copies without network access:
+
+```powershell
+python tools\fetch_real_pcaps.py --verify-only
+```
+
+To download the password-protected source archives, read the source warning and password scheme first, then provide the password through `NETTRACE_PCAP_PASSWORD`:
+
+```powershell
+$env:NETTRACE_PCAP_PASSWORD = "<password from source site>"
+python tools\fetch_real_pcaps.py --accept-risk
+```
+
+Validation corpus filenames:
 
 - `samples/real/2023-03-17-Emotet-E5-infection-traffic.pcap`
 - `samples/real/2024-11-14-Raspberry-Robin-infection-traffic.pcap`
@@ -245,9 +290,15 @@ The Emotet showcase analysis produced:
 - 32 TLS SNI events
 - 813 flows
 - 180 IOCs
-- 31 findings
+- 32 findings
 
 The analyst write-up identifies Emotet staging URLs, C2 infrastructure, high-frequency encrypted flows, and ATT&CK-mapped behavior.
+
+## Validation And Performance
+
+The [validation matrix](docs/VALIDATION.md) compares source-described behavior with extracted NetTrace evidence and records heuristic limitations without claiming an unsupported global detection rate.
+
+The five-capture benchmark corpus contains 171,530 packets and 41,577 flows. On the documented Windows/Python 3.12 system, individual analysis runs took 0.081 to 44.470 seconds with observed peak process memory between 76.5 and 151.9 MiB. See [BENCHMARKS.md](docs/BENCHMARKS.md) for the complete table, environment, caveats, and reproduction command.
 
 ## Known Limitations
 
@@ -264,7 +315,7 @@ Rules and tunable values live in `nettrace/rules/`:
 - `suspicious_ports.yaml` - lists suspicious or non-standard ports
 - `dga_allowlist.yaml` - suppresses known benign DGA false positives
 
-Additional plaintext HTTP ports can be configured under `protocols.http_ports` in `config.yaml`.
+Additional plaintext HTTP ports can be configured under `protocols.http_ports` in `config.yaml`. Complete HTTP request signatures are also detected packet-by-packet on unusual ports, while bounded stream reassembly remains limited to the configured port set.
 
 ## MISP Integration
 

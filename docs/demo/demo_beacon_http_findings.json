@@ -1,0 +1,324 @@
+{
+  "pcap_path": "samples\\suspicious\\demo_beacon_http.pcap",
+  "summary": {
+    "packets": 8,
+    "dns_events": 1,
+    "http_events": 1,
+    "tls_events": 0,
+    "ftp_events": 0,
+    "flows": 3,
+    "iocs": 3,
+    "findings": 6,
+    "critical": 2,
+    "high": 1,
+    "medium": 3,
+    "low": 0
+  },
+  "dns_events": [
+    {
+      "timestamp": 65.0,
+      "src_ip": "10.0.0.5",
+      "dst_ip": "8.8.8.8",
+      "query": "xj3k9q2z7m1p0a8c.biz",
+      "answers": [],
+      "ttl": null,
+      "packet_number": 7,
+      "answer_domains": [],
+      "answer_ttls": []
+    }
+  ],
+  "http_events": [
+    {
+      "timestamp": 70.0,
+      "src_ip": "10.0.0.5",
+      "dst_ip": "198.51.100.23",
+      "method": "GET",
+      "host": "malware-test.example",
+      "uri": "/payload.exe",
+      "user_agent": "python-requests/2.28",
+      "packet_number": 8,
+      "url": "http://malware-test.example/payload.exe"
+    }
+  ],
+  "tls_events": [],
+  "ftp_events": [],
+  "flows": [
+    {
+      "src_ip": "10.0.0.5",
+      "dst_ip": "203.0.113.66",
+      "src_port": 50000,
+      "dst_port": 4444,
+      "protocol": "TCP",
+      "first_seen": 0.0,
+      "last_seen": 50.0,
+      "packet_count": 6,
+      "byte_count": 276,
+      "timestamps": [
+        0.0,
+        10.0,
+        20.0,
+        30.0,
+        40.0,
+        50.0
+      ],
+      "first_packet_number": 1,
+      "packet_numbers_sample": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "duration": 50.0
+    },
+    {
+      "src_ip": "10.0.0.5",
+      "dst_ip": "8.8.8.8",
+      "src_port": 53000,
+      "dst_port": 53,
+      "protocol": "UDP",
+      "first_seen": 65.0,
+      "last_seen": 65.0,
+      "packet_count": 1,
+      "byte_count": 66,
+      "timestamps": [
+        65.0
+      ],
+      "first_packet_number": 7,
+      "packet_numbers_sample": [
+        7
+      ],
+      "duration": 0.0
+    },
+    {
+      "src_ip": "10.0.0.5",
+      "dst_ip": "198.51.100.23",
+      "src_port": 51515,
+      "dst_port": 80,
+      "protocol": "TCP",
+      "first_seen": 70.0,
+      "last_seen": 70.0,
+      "packet_count": 1,
+      "byte_count": 131,
+      "timestamps": [
+        70.0
+      ],
+      "first_packet_number": 8,
+      "packet_numbers_sample": [
+        8
+      ],
+      "duration": 0.0
+    }
+  ],
+  "iocs": [
+    {
+      "kind": "domain",
+      "value": "malware-test.example",
+      "source": "http_host",
+      "packet_number": 8
+    },
+    {
+      "kind": "domain",
+      "value": "xj3k9q2z7m1p0a8c.biz",
+      "source": "dns",
+      "packet_number": 7
+    },
+    {
+      "kind": "url",
+      "value": "http://malware-test.example/payload.exe",
+      "source": "http_request",
+      "packet_number": 8
+    }
+  ],
+  "findings": [
+    {
+      "title": "Possible DGA domain",
+      "description": "Domain structure has high entropy and weak language-like character patterns.",
+      "evidence": {
+        "domain": "xj3k9q2z7m1p0a8c.biz",
+        "entropy": 4.0,
+        "dga_score": 0.981,
+        "packet_number": 7,
+        "wireshark_filter": "frame.number == 7"
+      },
+      "category": "dga_domain",
+      "timestamp": 65.0,
+      "attack_id": "T1568.002",
+      "attack_name": "Dynamic Resolution: Domain Generation Algorithms",
+      "severity": "high",
+      "score": 70,
+      "tags": [
+        "dga",
+        "T1568.002"
+      ]
+    },
+    {
+      "title": "Suspicious HTTP user agent",
+      "description": "HTTP request used a user agent that appears in the local suspicious list.",
+      "evidence": {
+        "host": "malware-test.example",
+        "uri": "/payload.exe",
+        "user_agent": "python-requests/2.28",
+        "src_ip": "10.0.0.5",
+        "dst_ip": "198.51.100.23",
+        "packet_number": 8,
+        "wireshark_filter": "frame.number == 8"
+      },
+      "category": "http_c2",
+      "timestamp": 70.0,
+      "attack_id": "T1071.001",
+      "attack_name": "Application Layer Protocol: Web Protocols",
+      "severity": "medium",
+      "score": 65,
+      "tags": [
+        "http",
+        "user-agent",
+        "T1071.001"
+      ]
+    },
+    {
+      "title": "Executable download over HTTP",
+      "description": "HTTP URI suggests retrieval of an executable or script payload.",
+      "evidence": {
+        "url": "http://malware-test.example/payload.exe",
+        "method": "GET",
+        "packet_number": 8,
+        "wireshark_filter": "frame.number == 8"
+      },
+      "category": "http_c2",
+      "timestamp": 70.0,
+      "attack_id": "T1071.001",
+      "attack_name": "Application Layer Protocol: Web Protocols",
+      "severity": "medium",
+      "score": 65,
+      "tags": [
+        "http",
+        "payload",
+        "T1071.001"
+      ]
+    },
+    {
+      "title": "Connection to suspicious non-standard port",
+      "description": "Traffic used a port commonly seen in malware labs, backdoors, or tunneling.",
+      "evidence": {
+        "src_ip": "10.0.0.5",
+        "dst_ip": "203.0.113.66",
+        "dst_port": 4444,
+        "protocol": "TCP",
+        "first_packet_number": 1,
+        "packet_numbers_sample": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "wireshark_filter": "frame.number in {1 2 3 4 5 6}"
+      },
+      "category": "unusual_port",
+      "timestamp": 0.0,
+      "attack_id": "T1571",
+      "attack_name": "Non-Standard Port",
+      "severity": "medium",
+      "score": 50,
+      "tags": [
+        "non-standard-port",
+        "T1571"
+      ]
+    },
+    {
+      "title": "Local threat intel match",
+      "description": "IOC matched the local known-bad intelligence list.",
+      "evidence": {
+        "ioc_type": "domain",
+        "ioc_value": "malware-test.example",
+        "source": "http_host",
+        "packet_number": 8,
+        "wireshark_filter": "frame.number == 8"
+      },
+      "category": "threat_intel_match",
+      "timestamp": null,
+      "attack_id": "T1071.001",
+      "attack_name": "Application Layer Protocol: Web Protocols",
+      "severity": "critical",
+      "score": 95,
+      "tags": [
+        "IOC_MATCH",
+        "LOCAL_INTEL",
+        "T1071.001"
+      ]
+    },
+    {
+      "title": "Local threat intel match",
+      "description": "IOC matched the local known-bad intelligence list.",
+      "evidence": {
+        "ioc_type": "domain",
+        "ioc_value": "xj3k9q2z7m1p0a8c.biz",
+        "source": "dns",
+        "packet_number": 7,
+        "wireshark_filter": "frame.number == 7"
+      },
+      "category": "threat_intel_match",
+      "timestamp": null,
+      "attack_id": "T1071.004",
+      "attack_name": "Application Layer Protocol: DNS",
+      "severity": "critical",
+      "score": 95,
+      "tags": [
+        "IOC_MATCH",
+        "LOCAL_INTEL",
+        "T1071.004"
+      ]
+    }
+  ],
+  "timeline": [
+    {
+      "timestamp": 0.0,
+      "type": "flow",
+      "summary": "10.0.0.5:50000 -> 203.0.113.66:4444 TCP"
+    },
+    {
+      "timestamp": 0.0,
+      "type": "finding",
+      "summary": "Connection to suspicious non-standard port"
+    },
+    {
+      "timestamp": 65.0,
+      "type": "dns",
+      "summary": "xj3k9q2z7m1p0a8c.biz"
+    },
+    {
+      "timestamp": 65.0,
+      "type": "finding",
+      "summary": "Possible DGA domain"
+    },
+    {
+      "timestamp": 65.0,
+      "type": "flow",
+      "summary": "10.0.0.5:53000 -> 8.8.8.8:53 UDP"
+    },
+    {
+      "timestamp": 70.0,
+      "type": "http",
+      "summary": "http://malware-test.example/payload.exe"
+    },
+    {
+      "timestamp": 70.0,
+      "type": "flow",
+      "summary": "10.0.0.5:51515 -> 198.51.100.23:80 TCP"
+    },
+    {
+      "timestamp": 70.0,
+      "type": "finding",
+      "summary": "Suspicious HTTP user agent"
+    },
+    {
+      "timestamp": 70.0,
+      "type": "finding",
+      "summary": "Executable download over HTTP"
+    }
+  ],
+  "warnings": []
+}

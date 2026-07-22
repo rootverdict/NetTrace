@@ -22,7 +22,7 @@ from nettrace.models.report import AnalysisReport
 from nettrace.parsers.dns_extractor import DNSStreamExtractor, extract_dns_events_from_packet
 from nettrace.parsers.flow_builder import update_flow
 from nettrace.parsers.ftp_extractor import FTPStreamExtractor
-from nettrace.parsers.http_extractor import HTTPStreamExtractor
+from nettrace.parsers.http_extractor import HTTPStreamExtractor, extract_http_event
 from nettrace.parsers.ip_reassembly import IPFragmentReassembler
 from nettrace.parsers.pcap_loader import iter_packets
 from nettrace.parsers.tls_extractor import TLSStreamExtractor
@@ -40,6 +40,7 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
     http_events = []
     tls_events = []
     ftp_events = []
+    http_event_keys: set[tuple[int, str, str, str, str]] = set()
     flow_state: dict[tuple, Flow] = {}
     warnings: set[str] = set()
     max_dns_events = _limit(config, "max_dns_events", 100_000)
@@ -63,8 +64,10 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
     ftp_extractor = FTPStreamExtractor(stream_options=stream_options)
     dns_stream_extractor = DNSStreamExtractor(stream_options=stream_options)
     fragment_reassembler = IPFragmentReassembler()
+    packet_count = 0
 
     for raw_packet_number, raw_packet in enumerate(iter_packets(pcap_path), start=1):
+        packet_count = raw_packet_number
         reassembled = fragment_reassembler.feed(raw_packet, raw_packet_number)
         if reassembled is None:
             continue
@@ -77,7 +80,27 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
                 dns_events.append(dns_event)
             else:
                 warnings.add(f"DNS events truncated at {max_dns_events} entries.")
-        for http_event in http_extractor.feed(packet, packet_number=packet_number):
+        http_events_from_packet = http_extractor.feed(packet, packet_number=packet_number)
+        if not http_events_from_packet:
+            direct_http_event = extract_http_event(
+                packet,
+                packet_number=packet_number,
+                http_ports=http_ports,
+                allow_any_port=True,
+            )
+            if direct_http_event is not None:
+                http_events_from_packet = [direct_http_event]
+        for http_event in http_events_from_packet:
+            event_key = (
+                http_event.packet_number,
+                http_event.src_ip,
+                http_event.dst_ip,
+                http_event.method,
+                http_event.uri,
+            )
+            if event_key in http_event_keys:
+                continue
+            http_event_keys.add(event_key)
             if len(http_events) < max_http_events:
                 http_events.append(http_event)
             else:
@@ -167,5 +190,6 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
         iocs=iocs,
         findings=findings,
         timeline=timeline,
+        packet_count=packet_count,
         warnings=sorted(warnings),
     )

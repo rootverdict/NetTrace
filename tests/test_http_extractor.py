@@ -40,6 +40,18 @@ def test_http_ports_are_configurable():
     assert extract_http_event(packet, http_ports={8001}) is not None
 
 
+def test_plaintext_http_can_be_signature_detected_on_an_unusual_port():
+    payload = b"POST /fakeurl.htm HTTP/1.1\r\nHost: 194.180.191.64\r\nContent-Length: 0\r\n\r\n"
+    packet = IP(src="10.0.0.5", dst="194.180.191.64") / TCP(sport=51515, dport=443) / Raw(load=payload)
+    packet.time = 1.0
+
+    event = extract_http_event(packet, allow_any_port=True)
+
+    assert event is not None
+    assert event.method == "POST"
+    assert event.uri == "/fakeurl.htm"
+
+
 def test_connect_request_is_extracted():
     payload = b"CONNECT evil.example:443 HTTP/1.1\r\nHost: evil.example:443\r\n\r\n"
     packet = IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=51515, dport=80) / Raw(load=payload)

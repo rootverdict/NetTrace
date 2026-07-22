@@ -31,7 +31,9 @@ def render_pdf_report(report: AnalysisReport, output_path: Path) -> Path:
         Paragraph(f"PCAP: {report.pcap_path}", styles["Normal"]),
         Spacer(1, 12),
     ]
-    summary_rows = [["Metric", "Count"]] + [[key.replace("_", " ").title(), value] for key, value in report.summary().items()]
+    summary_rows = [["Metric", "Count"]] + [
+        [key.replace("_", " ").title(), value] for key, value in report.summary().items()
+    ]
     summary = Table(summary_rows, hAlign="LEFT")
     summary.setStyle(
         TableStyle(
@@ -48,14 +50,16 @@ def render_pdf_report(report: AnalysisReport, output_path: Path) -> Path:
     if report.warnings:
         elements.append(Paragraph("Analysis Warnings", styles["Heading2"]))
         for warning in report.warnings:
-            elements.append(Paragraph(f"• {escape(warning)}", styles["Normal"]))
+            elements.append(Paragraph(f"&bull; {escape(warning)}", styles["Normal"]))
         elements.append(Spacer(1, 12))
     elements.append(Paragraph("Findings", styles["Heading2"]))
     for finding in sorted(report.findings, key=lambda item: item.score, reverse=True):
         elements.append(Paragraph(f"{finding.severity.upper()} - {finding.title}", styles["Heading3"]))
         elements.append(Paragraph(finding.description, styles["Normal"]))
         if finding.attack_id:
-            elements.append(Paragraph(f"MITRE ATT&CK: {finding.attack_id} {finding.attack_name}", styles["Normal"]))
+            elements.append(
+                Paragraph(f"MITRE ATT&CK: {finding.attack_id} {finding.attack_name}", styles["Normal"])
+            )
         evidence = escape(format_evidence(finding.evidence))
         elements.append(Paragraph(f"Evidence: {evidence}", styles["Code"]))
         elements.append(Spacer(1, 8))

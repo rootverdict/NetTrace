@@ -43,7 +43,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest~=8.4"
+  "pypdf~=6.0",
+  "pytest~=8.4",
+  "pytest-cov~=7.1"
 ]
 
 [project.scripts]
@@ -62,3 +64,11 @@ nettrace = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["nettrace"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true

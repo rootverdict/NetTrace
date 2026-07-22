@@ -18,10 +18,12 @@ class AnalysisReport:
     iocs: list[IOC]
     findings: list[Finding]
     timeline: list[dict[str, Any]]
+    packet_count: int = 0
     warnings: list[str] = field(default_factory=list)
 
     def summary(self) -> dict[str, int]:
         return {
+            "packets": self.packet_count,
             "dns_events": len(self.dns_events),
             "http_events": len(self.http_events),
             "tls_events": len(self.tls_events),

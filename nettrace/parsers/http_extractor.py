@@ -58,13 +58,18 @@ def _parse_headers(payload: bytes) -> tuple[str, str, str, str] | None:
     return parts[0], parts[1], headers.get("host", ""), headers.get("user-agent", "")
 
 
-def extract_http_event(packet, packet_number: int = 0, http_ports: set[int] | None = None) -> HTTPEvent | None:
+def extract_http_event(
+    packet,
+    packet_number: int = 0,
+    http_ports: set[int] | None = None,
+    allow_any_port: bool = False,
+) -> HTTPEvent | None:
     endpoints = ip_endpoints(packet)
     if endpoints is None or not packet.haslayer(TCP) or not packet.haslayer(Raw):
         return None
     tcp = packet[TCP]
     ports = HTTP_PORTS if http_ports is None else http_ports
-    if tcp.dport not in ports:
+    if tcp.dport not in ports and not allow_any_port:
         return None
     parsed = _parse_headers(bytes(packet[Raw].load))
     if not parsed:

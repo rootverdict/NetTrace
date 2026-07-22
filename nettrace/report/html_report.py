@@ -13,6 +13,8 @@ def render_html_report(report: AnalysisReport, output_path: Path) -> Path:
     env = Environment(
         loader=FileSystemLoader(template_dir),
         autoescape=select_autoescape(["html", "xml"]),
+        trim_blocks=True,
+        lstrip_blocks=True,
     )
     env.filters["to_pretty_json"] = lambda value: json.dumps(value, indent=2)
     template = env.get_template("report.html")
