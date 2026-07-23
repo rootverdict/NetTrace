@@ -11,7 +11,7 @@ The project is designed for malware traffic analysis, SOC triage, threat hunting
 
 ![NetTrace generated PDF report preview](docs/assets/nettrace-report.png)
 
-Quick proof: [PDF demo report](docs/demo/demo_beacon_http_report.pdf) | [HTML demo report](docs/demo/demo_beacon_http_report.html) | [validation matrix](docs/VALIDATION.md) | [benchmarks](docs/BENCHMARKS.md)
+Quick proof: [PDF demo report](docs/demo/demo_beacon_http_report.pdf) | [HTML demo report](docs/demo/demo_beacon_http_report.html) | [validation matrix](docs/VALIDATION.md) | [benchmarks](docs/BENCHMARKS.md) | [version scope](docs/VERSION_SCOPE.md)
 
 ## What NetTrace Does
 
