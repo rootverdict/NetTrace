@@ -3,7 +3,52 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 import ipaddress
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+# Bug #16: HTTP query strings were stored and exported verbatim into JSON/HTML/
+# Markdown/PDF reports and the IOC list. FTP passwords were already redacted
+# (see ftp_extractor.py) but tokens/session IDs/API keys in URLs were not.
+SENSITIVE_QUERY_KEYS = {
+    "token",
+    "api_key",
+    "apikey",
+    "password",
+    "passwd",
+    "pass",
+    "session",
+    "sessionid",
+    "signature",
+    "auth",
+    "authorization",
+    "access_token",
+    "refresh_token",
+    "secret",
+    "client_secret",
+}
+
+
+def redact_sensitive_query_params(uri: str) -> str:
+    """Redact known-sensitive query parameter values in a URI, preserving
+    the path and parameter names (both are useful for analysis) but not the
+    secret values themselves."""
+    if "?" not in uri:
+        return uri
+    parsed = urlsplit(uri)
+    if not parsed.query:
+        return uri
+    pairs = parse_qsl(parsed.query, keep_blank_values=True)
+    redacted_any = False
+    redacted_pairs = []
+    for key, value in pairs:
+        if key.lower() in SENSITIVE_QUERY_KEYS:
+            redacted_pairs.append((key, "<redacted>"))
+            redacted_any = True
+        else:
+            redacted_pairs.append((key, value))
+    if not redacted_any:
+        return uri
+    new_query = urlencode(redacted_pairs)
+    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, new_query, parsed.fragment))
 
 
 @dataclass
@@ -115,6 +160,11 @@ class IOC:
     value: str
     source: str
     packet_number: int = 0
+    # "confirmed": derived from a parsed protocol artifact (DNS answer, HTTP host,
+    # TLS SNI, request URL). "observed": a raw flow endpoint IP with no protocol
+    # confirmation -- these dominate volume and should not be treated as equal-
+    # weight IOCs. See ioc_extractor.CONFIRMED_SOURCES.
+    confidence: str = "observed"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

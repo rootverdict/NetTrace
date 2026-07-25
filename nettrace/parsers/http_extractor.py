@@ -3,7 +3,7 @@ from __future__ import annotations
 from scapy.layers.inet import TCP
 from scapy.packet import Raw
 
-from nettrace.models.events import HTTPEvent
+from nettrace.models.events import HTTPEvent, redact_sensitive_query_params
 from nettrace.parsers.tcp_stream import TCPStreamBuffers, ip_endpoints
 
 HTTP_METHODS = {"GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "PATCH", "CONNECT", "TRACE"}
@@ -81,7 +81,7 @@ def extract_http_event(
         dst_ip=endpoints[1],
         method=method,
         host=host,
-        uri=uri,
+        uri=redact_sensitive_query_params(uri),
         user_agent=user_agent,
         packet_number=packet_number,
     )
@@ -138,7 +138,7 @@ class HTTPStreamExtractor:
                         dst_ip=state.dst_ip,
                         method=method,
                         host=host,
-                        uri=uri,
+                        uri=redact_sensitive_query_params(uri),
                         user_agent=user_agent,
                         packet_number=state.first_packet_number,
                     )

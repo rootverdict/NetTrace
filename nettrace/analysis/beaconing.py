@@ -37,9 +37,11 @@ def detect_beaconing(flows: list[Flow], thresholds: dict) -> list[Finding]:
         mean_interval = 0.0
         interval_m2 = 0.0
         previous_timestamp: float | None = None
+        contributing_indices: set[int] = set()
         while heap and processed_events < max_group_events:
             timestamp, activity_index, timestamp_index = heapq.heappop(heap)
             processed_events += 1
+            contributing_indices.add(activity_index)
             if previous_timestamp is not None:
                 interval = timestamp - previous_timestamp
                 if interval > 0:
@@ -61,12 +63,41 @@ def detect_beaconing(flows: list[Flow], thresholds: dict) -> list[Finding]:
         cv = stdev / mean_interval if mean_interval else 999.0
         if cv <= max_cv:
             flow = activities[0][0]
+            # Bug #7: aggregate evidence across every flow that fed the beacon
+            # calculation, not just the first one -- a rotating-source-port
+            # beacon spans multiple flows, and the old code silently attributed
+            # all 30+ events to a single connection's packet numbers.
+            contributing_flows = [activities[index][0] for index in sorted(contributing_indices)]
+            packet_numbers_sample: list[int] = []
+            first_packet_number = 0
+            wireshark_numbers: list[int] = []
+            for contributing_flow in contributing_flows:
+                flow_evidence = flow_packet_evidence(contributing_flow, limit=4)
+                sample = flow_evidence.get("packet_numbers_sample", [])
+                wireshark_numbers.extend(sample)
+                if sample and not packet_numbers_sample:
+                    packet_numbers_sample = sample
+                if not first_packet_number and flow_evidence.get("first_packet_number"):
+                    first_packet_number = flow_evidence["first_packet_number"]
+            observation_window = max((f.last_seen for f in contributing_flows), default=flow.last_seen) - min(
+                (f.first_seen for f in contributing_flows), default=flow.first_seen
+            )
+            # Bug #6: confidence reflects how strong the signal actually is --
+            # more events and a tighter coefficient of variation is stronger
+            # evidence than a borderline 5-event, cv=0.24 group.
+            if processed_events >= 50 and cv <= 0.05:
+                confidence = "high"
+            elif processed_events >= 10 and cv <= 0.15:
+                confidence = "medium"
+            else:
+                confidence = "low"
             findings.append(
                 Finding(
                     title="Possible beaconing behavior",
                     description="Regular connection timing suggests command-and-control beaconing.",
                     category="dns_beaconing" if flow.dst_port == 53 else "network_beaconing",
                     timestamp=flow.first_seen,
+                    confidence=confidence,
                     evidence={
                         "src_ip": flow.src_ip,
                         "dst_ip": flow.dst_ip,
@@ -76,7 +107,15 @@ def detect_beaconing(flows: list[Flow], thresholds: dict) -> list[Finding]:
                         "timing_events_truncated": bool(heap),
                         "mean_interval_seconds": round(mean_interval, 3),
                         "coefficient_of_variation": round(cv, 3),
-                        **flow_packet_evidence(flow),
+                        "connection_count": len(contributing_flows),
+                        "observation_window_seconds": round(observation_window, 3),
+                        "first_packet_number": first_packet_number or flow.first_packet_number,
+                        "packet_numbers_sample": wireshark_numbers[:8],
+                        "wireshark_filter": (
+                            "frame.number in {" + " ".join(str(n) for n in wireshark_numbers[:8]) + "}"
+                            if wireshark_numbers
+                            else ""
+                        ),
                     },
                     tags=["beaconing"],
                 )

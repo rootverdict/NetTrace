@@ -63,7 +63,7 @@ def test_cli_prints_analysis_warnings(tmp_path, monkeypatch, capsys):
         timeline=[],
         warnings=["HTTP events truncated at 10 entries."],
     )
-    monkeypatch.setattr("nettrace.cli.load_config", lambda _path: {})
+    monkeypatch.setattr("nettrace.cli.load_config", lambda _path, explicit=False: {})
     monkeypatch.setattr("nettrace.cli.analyze_pcap", lambda _path, _config: report)
     monkeypatch.setattr(
         "sys.argv",
@@ -99,7 +99,7 @@ def test_cli_handles_report_output_errors_without_traceback(tmp_path, monkeypatc
         findings=[],
         timeline=[],
     )
-    monkeypatch.setattr("nettrace.cli.load_config", lambda _path: {})
+    monkeypatch.setattr("nettrace.cli.load_config", lambda _path, explicit=False: {})
     monkeypatch.setattr("nettrace.cli.analyze_pcap", lambda _path, _config: report)
     monkeypatch.setattr("sys.argv", ["nettrace", "sample.pcap", "--output", str(output_file)])
 

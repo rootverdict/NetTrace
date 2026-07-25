@@ -1,18 +1,26 @@
+# Domain-boundary matching only. A domain matches a suffix if it equals it, or
+# ends with "." + suffix -- never via raw substring. See bug #2:
+# "microsoft-login-x8f39q.biz" must NOT match "microsoft".
+domains:
+  - "microsoft.com"
+  - "windowsupdate.com"
+  - "msedge.net"
+  - "azure.com"
+  - "azureedge.net"
+  - "azurefd.us"
+  - "cloudapp.azure.com"
+  - "trafficmanager.net"
 suffixes:
-  - ".local"
-  - ".localdomain"
-  - ".microsoft.com"
-  - ".windowsupdate.com"
-  - ".msedge.net"
-  - ".azureedge.net"
-  - ".azurefd.us"
-  - ".cloudapp.azure.com"
-  - ".trafficmanager.net"
-contains:
-  - "microsoft"
-  - "windowsupdate"
-  - "msedge"
-  - "azure"
+  - "local"
+  - "localdomain"
+  - "microsoft.com"
+  - "windowsupdate.com"
+  - "msedge.net"
+  - "azure.com"
+  - "azureedge.net"
+  - "azurefd.us"
+  - "cloudapp.azure.com"
+  - "trafficmanager.net"
 regexes:
   - "^desktop-[a-z0-9-]+(\\..*)?$"
   - "^[a-z0-9-]+-dc(\\..*)?$"

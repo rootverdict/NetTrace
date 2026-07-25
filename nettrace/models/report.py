@@ -30,6 +30,8 @@ class AnalysisReport:
             "ftp_events": len(self.ftp_events),
             "flows": len(self.flows),
             "iocs": len(self.iocs),
+            "iocs_confirmed": sum(1 for ioc in self.iocs if ioc.confidence == "confirmed"),
+            "iocs_observed": sum(1 for ioc in self.iocs if ioc.confidence == "observed"),
             "findings": len(self.findings),
             "critical": sum(1 for finding in self.findings if finding.severity == "critical"),
             "high": sum(1 for finding in self.findings if finding.severity == "high"),

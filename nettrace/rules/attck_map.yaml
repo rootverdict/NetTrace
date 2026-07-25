@@ -1,9 +1,15 @@
+# NOTE on "network_beaconing" and "high_frequency_connections": these are
+# intentionally absent from this map. Bug #1: mapping arbitrary periodic TCP/UDP
+# traffic straight to T1071.001 (Web Protocols) or raw packet volume straight to
+# T1020 (Automated Exfiltration) overstates what NetTrace actually observed.
+# network_beaconing gets a technique only when attck_tagger.py's
+# _refine_network_beaconing() can confirm the destination port is actually
+# HTTP/TLS; otherwise it is reported as an unmapped behavioral finding.
+# high_frequency_connections never gets an ATT&CK id by itself -- packet count
+# alone does not establish exfiltration.
 dns_beaconing:
   id: T1071.004
   name: "Application Layer Protocol: DNS"
-network_beaconing:
-  id: T1071.001
-  name: "Application Layer Protocol: Web Protocols"
 http_c2:
   id: T1071.001
   name: "Application Layer Protocol: Web Protocols"
@@ -14,11 +20,8 @@ dga_domain:
   id: T1568.002
   name: "Dynamic Resolution: Domain Generation Algorithms"
 long_tls_session:
-  id: T1090
-  name: "Proxy"
-high_frequency_connections:
-  id: T1020
-  name: "Automated Exfiltration"
+  id: T1573
+  name: "Encrypted Channel"
 unusual_port:
   id: T1571
   name: "Non-Standard Port"

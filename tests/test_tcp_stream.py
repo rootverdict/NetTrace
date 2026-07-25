@@ -1,0 +1,92 @@
+from scapy.all import IP, Raw, TCP
+
+from nettrace.parsers.tcp_stream import TCPStreamBuffers
+
+
+def _segment(seq: int, payload: bytes, packet_number: int, timestamp: float = 1.0):
+    packet = IP(src="10.0.0.5", dst="203.0.113.10") / TCP(sport=50000, dport=80, seq=seq, flags="A") / Raw(load=payload)
+    packet.time = timestamp
+    return packet
+
+
+def test_stale_retransmission_below_base_seq_is_discarded_not_leaked():
+    # Bug #8: a segment fully covering bytes already consumed by a protocol
+    # parser must be discarded outright, not left in `pending` forever eating
+    # the pending-segment budget.
+    buffers = TCPStreamBuffers()
+    state = buffers.feed(_segment(100, b"GET / HTTP/1.1\r\n", 1), 1)
+    assert state is not None
+    buffers.consume(state, len(b"GET / HTTP/1.1\r\n"), next_packet_number=2, next_timestamp=1.1)
+    assert state.has_consumed is True
+    assert state.base_seq == 116
+
+    # A retransmission of the already-consumed first segment arrives late.
+    state = buffers.feed(_segment(100, b"GET / HTTP/1.1\r\n", 3, timestamp=1.2), 3)
+    assert state is not None
+    assert state.pending == {}, "stale retransmission must not sit in pending forever"
+    assert bytes(state.buffer) == b""
+
+
+def test_retransmission_ending_exactly_at_base_seq_is_not_reprepended():
+    # Bug #8 (exact case from the review): a segment ending exactly at the new
+    # base_seq must not be prepended back into the live buffer -- that would
+    # resurrect already-consumed, already-reported data.
+    buffers = TCPStreamBuffers()
+    state = buffers.feed(_segment(100, b"AAAA", 1), 1)
+    buffers.consume(state, 4, next_packet_number=2, next_timestamp=1.1)
+    assert state.base_seq == 104
+
+    state = buffers.feed(_segment(100, b"AAAA", 3, timestamp=1.2), 3)  # end == 104 == base_seq
+    assert bytes(state.buffer) == b"", "must not resurrect consumed bytes"
+
+
+def test_out_of_order_prefix_before_any_consumption_still_merges():
+    # Sanity check: the has_consumed guard must not break the normal,
+    # legitimate out-of-order arrival case (no consume() has happened yet).
+    buffers = TCPStreamBuffers()
+    state = buffers.feed(_segment(102, b"ER analyst\r\n", 2, timestamp=2.0), 2)
+    assert bytes(state.buffer) == b"ER analyst\r\n"
+
+    state = buffers.feed(_segment(100, b"US", 1, timestamp=1.0), 1)
+    assert bytes(state.buffer) == b"USER analyst\r\n"
+
+
+def test_conflicting_overlap_is_detected_not_silently_resolved():
+    # Bug #3: overlapping retransmitted bytes that *differ* from what's
+    # already buffered were never compared -- silently accepted or dropped
+    # with no signal to the analyst.
+    buffers = TCPStreamBuffers()
+    buffers.feed(_segment(100, b"AAAABBBB", 1), 1)
+    assert buffers.conflicting_overlaps == 0
+
+    # Retransmission of the same range with DIFFERENT bytes -- a real conflict.
+    buffers.feed(_segment(100, b"AAAAXXXX", 2, timestamp=1.1), 2)
+    assert buffers.conflicting_overlaps == 1
+
+
+def test_identical_overlap_is_not_flagged_as_conflict():
+    buffers = TCPStreamBuffers()
+    buffers.feed(_segment(100, b"AAAABBBB", 1), 1)
+    buffers.feed(_segment(100, b"AAAABBBB", 2, timestamp=1.1), 2)
+
+    assert buffers.conflicting_overlaps == 0
+
+
+def test_incomplete_stream_visible_at_eof():
+    # Bug #4: a stream that never receives its closing FIN/RST and never hits
+    # a resource limit was previously invisible in the report -- it wasn't
+    # "discarded", it just silently vanished from consideration.
+    buffers = TCPStreamBuffers()
+    buffers.feed(_segment(100, b"incomplete HTTP request, no blank line yet", 1), 1)
+
+    assert buffers.incomplete_streams == 1
+    assert buffers.incomplete_buffered_bytes == len(b"incomplete HTTP request, no blank line yet")
+
+
+def test_fully_consumed_stream_is_not_counted_as_incomplete():
+    buffers = TCPStreamBuffers()
+    state = buffers.feed(_segment(100, b"GET / HTTP/1.1\r\n\r\n", 1), 1)
+    buffers.consume(state, len(b"GET / HTTP/1.1\r\n\r\n"), next_packet_number=2, next_timestamp=1.1)
+
+    assert buffers.incomplete_streams == 0
+    assert buffers.incomplete_buffered_bytes == 0
