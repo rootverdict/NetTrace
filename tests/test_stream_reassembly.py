@@ -175,7 +175,7 @@ def test_engine_uses_stream_reassembly(tmp_path):
     report = analyze_pcap(capture, load_config(Path("does-not-exist.yaml")))
 
     assert len(report.http_events) == 1
-    assert any(finding.title == "Executable download over HTTP" for finding in report.findings)
+    assert any(finding.title == "Possible executable/script download request" for finding in report.findings)
 
 
 def test_http_stream_resets_when_tcp_tuple_is_reused():
@@ -299,7 +299,7 @@ def test_engine_reassembles_ipv4_fragments(tmp_path):
 
     assert len(report.http_events) == 1
     assert report.http_events[0].host == "evil.example"
-    assert any(finding.title == "Executable download over HTTP" for finding in report.findings)
+    assert any(finding.title == "Possible executable/script download request" for finding in report.findings)
 
 
 def test_engine_reports_resource_truncation(tmp_path):
@@ -331,4 +331,63 @@ def test_engine_uses_configured_http_ports(tmp_path):
     report = analyze_pcap(capture, config)
 
     assert len(report.http_events) == 1
-    assert any(finding.title == "Executable download over HTTP" for finding in report.findings)
+    assert any(finding.title == "Possible executable/script download request" for finding in report.findings)
+
+
+def test_engine_caps_findings_at_configured_max(tmp_path):
+    # Bug #10: there was previously no cap -- a hostile/noisy capture could
+    # produce an unbounded number of findings.
+    packets = []
+    for index in range(5):
+        packet = (
+            IP(src="10.0.0.5", dst=f"203.0.113.{index}")
+            / TCP(sport=40000 + index, dport=4444, seq=100, flags="PA")
+            / Raw(load=b"x" * 10)
+        )
+        packet.time = float(index)
+        packets.append(packet)
+    capture = tmp_path / "many-findings.pcap"
+    wrpcap(str(capture), packets)
+    config = load_config(Path("does-not-exist.yaml"))
+    config["limits"]["max_findings"] = 2
+
+    report = analyze_pcap(capture, config)
+
+    assert len(report.findings) == 2
+    assert any("Findings truncated at 2 entries" in warning for warning in report.warnings)
+
+
+def test_engine_surfaces_conflicting_overlap_warning(tmp_path):
+    # Bug #3: conflicting overlapping retransmissions must be visible to the
+    # analyst, not silently resolved. Uses an incomplete request (no blank
+    # line) so the bytes stay unconsumed in the buffer -- a complete request
+    # would be consumed immediately and hit the bug #8 path instead.
+    packets = [
+        IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50000, dport=80, seq=100, flags="PA")
+        / Raw(load=b"GET /aaaaaaaaaaaa"),
+        IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50000, dport=80, seq=100, flags="PA")
+        / Raw(load=b"GET /bbbbbbbbbbbb"),
+    ]
+    for number, packet in enumerate(packets, 1):
+        packet.time = float(number)
+    capture = tmp_path / "overlap-conflict.pcap"
+    wrpcap(str(capture), packets)
+
+    report = analyze_pcap(capture, load_config(Path("does-not-exist.yaml")))
+
+    assert any("overlapping retransmission" in warning for warning in report.warnings)
+
+
+def test_engine_surfaces_incomplete_stream_warning(tmp_path):
+    # Bug #4: a stream still open (no FIN/RST, never hit a resource limit)
+    # when the capture ends was previously invisible in the report.
+    packet = IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50000, dport=80, seq=100, flags="PA") / Raw(
+        load=b"GET /never-finishes"
+    )
+    packet.time = 1.0
+    capture = tmp_path / "truncated.pcap"
+    wrpcap(str(capture), [packet])
+
+    report = analyze_pcap(capture, load_config(Path("does-not-exist.yaml")))
+
+    assert any("incomplete stream" in warning for warning in report.warnings)

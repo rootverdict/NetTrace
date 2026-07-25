@@ -137,6 +137,31 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
     if discarded_tcp_streams:
         warnings.add(f"TCP reassembly discarded {discarded_tcp_streams} incomplete or resource-limited streams.")
 
+    conflicting_overlaps = sum(
+        extractor.streams.conflicting_overlaps
+        for extractor in (dns_stream_extractor, http_extractor, tls_extractor, ftp_extractor)
+    )
+    if conflicting_overlaps:
+        warnings.add(
+            f"TCP reassembly observed {conflicting_overlaps} overlapping retransmission(s) whose bytes "
+            "did not match already-buffered data; NetTrace kept the first-seen bytes. This can indicate "
+            "reassembly evasion and should be reviewed manually."
+        )
+
+    incomplete_streams = sum(
+        extractor.streams.incomplete_streams
+        for extractor in (dns_stream_extractor, http_extractor, tls_extractor, ftp_extractor)
+    )
+    incomplete_bytes = sum(
+        extractor.streams.incomplete_buffered_bytes
+        for extractor in (dns_stream_extractor, http_extractor, tls_extractor, ftp_extractor)
+    )
+    if incomplete_streams:
+        warnings.add(
+            f"TCP reassembly ended with {incomplete_streams} incomplete stream(s) containing "
+            f"{incomplete_bytes} buffered bytes; the capture may have been truncated mid-message."
+        )
+
     flows = list(flow_state.values())
 
     findings = []
@@ -160,6 +185,17 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
 
     tag_findings(findings)
     score_findings(findings)
+
+    max_findings = config["limits"]["max_findings"]
+    if len(findings) > max_findings:
+        # Bug #10: there was previously no cap at all -- a hostile or extremely
+        # noisy capture could produce hundreds of thousands of findings and an
+        # unusable report. Keep the highest-severity findings rather than an
+        # arbitrary prefix.
+        findings.sort(key=lambda finding: finding.score, reverse=True)
+        findings = findings[:max_findings]
+        warnings.add(f"Findings truncated at {max_findings} entries (kept highest-severity).")
+
     timeline_item_count = (
         len(dns_events)
         + len(http_events)

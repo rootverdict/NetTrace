@@ -15,6 +15,7 @@ class Finding:
     attack_name: str | None = None
     severity: str = "info"
     score: int = 0
+    confidence: str = "medium"
     tags: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

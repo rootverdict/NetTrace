@@ -1,0 +1,4 @@
+-r requirements.txt
+pypdf~=6.0
+pytest~=8.4
+pytest-cov~=7.1

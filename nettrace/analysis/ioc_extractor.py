@@ -24,6 +24,27 @@ SOURCE_PRIORITY = {
     "dns_answer_domain": 6,
 }
 
+# Sources backed by a parsed protocol artifact (a DNS answer, an HTTP host header,
+# a TLS SNI, a request URL). Everything else -- principally raw flow endpoint IPs
+# with a "flow:<proto>:<port>" source -- is an *observed* network artifact, not a
+# confirmed indicator, and should not be counted or ranked the same way. See bug #11.
+CONFIRMED_SOURCES = {
+    "dns",
+    "dns_answer",
+    "dns_answer_domain",
+    "http_host",
+    "http_url_host",
+    "http_connect_target",
+    "http_request",
+    "http_flow",
+    "tls_sni",
+    "tls_flow",
+}
+
+
+def _confidence_for_source(source: str) -> str:
+    return "confirmed" if source in CONFIRMED_SOURCES else "observed"
+
 
 def _add(iocs: set[IOC], kind: str, value: str, source: str, packet_number: int = 0) -> None:
     if not value:
@@ -35,7 +56,15 @@ def _add(iocs: set[IOC], kind: str, value: str, source: str, packet_number: int 
             return
     else:
         normalized = value.lower() if kind == "domain" else value
-    iocs.add(IOC(kind=kind, value=normalized, source=source, packet_number=packet_number))
+    iocs.add(
+        IOC(
+            kind=kind,
+            value=normalized,
+            source=source,
+            packet_number=packet_number,
+            confidence=_confidence_for_source(source),
+        )
+    )
 
 
 def _is_public_ioc_ip(ip: str) -> bool:

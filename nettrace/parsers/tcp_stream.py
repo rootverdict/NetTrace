@@ -39,6 +39,11 @@ class TCPStreamState:
     pending: dict[int, _TCPSegment] = field(default_factory=dict)
     first_packet_number: int = 0
     first_timestamp: float = 0.0
+    # True once consume() has run at least once. Before that, base_seq is just
+    # the earliest segment received so far (out-of-order arrivals below it are
+    # still legitimate and must be prefixed in). After that, base_seq is a
+    # genuine "already parsed and removed" low-water mark -- see bug #8.
+    has_consumed: bool = False
 
 
 def ip_endpoints(packet) -> tuple[str, str] | None:
@@ -64,10 +69,26 @@ class TCPStreamBuffers:
         self._streams: OrderedDict[tuple[str, str, int, int], TCPStreamState] = OrderedDict()
         self._total_buffered_bytes = 0
         self.discarded_streams = 0
+        self.conflicting_overlaps = 0
 
     @property
     def total_buffered_bytes(self) -> int:
         return self._total_buffered_bytes
+
+    @property
+    def incomplete_streams(self) -> int:
+        """Streams still open (never hit FIN/RST/eviction) when iteration ends.
+
+        Bug #4: the engine only ever reported streams it actively discarded
+        for resource limits -- a stream that simply never got a chance to
+        finish (truncated capture, missing final segment) looked identical to
+        a clean report with nothing outstanding.
+        """
+        return sum(1 for state in self._streams.values() if self._state_size(state) > 0)
+
+    @property
+    def incomplete_buffered_bytes(self) -> int:
+        return sum(self._state_size(state) for state in self._streams.values())
 
     @staticmethod
     def _state_size(state: TCPStreamState) -> int:
@@ -83,17 +104,42 @@ class TCPStreamBuffers:
             self.discarded_streams += 1
 
     @staticmethod
-    def _merge_pending(state: TCPStreamState) -> None:
+    def _merge_pending(state: TCPStreamState) -> bool:
+        """Merge ready pending segments into the buffer.
+
+        Returns True if a byte-level conflict was found between overlapping
+        retransmitted data and data already accepted (bug #3): the old code
+        accepted/trimmed overlapping segments without ever comparing bytes, so
+        a retransmission with *different* content than what was already
+        buffered was silently and arbitrarily resolved.
+        """
         if state.base_seq is None or state.next_seq is None:
-            return
+            return False
+        conflict = False
         changed = True
         while changed:
             changed = False
             for sequence, segment in sorted(state.pending.items()):
                 end = sequence + len(segment.payload)
+                # Bug #8: a segment entirely covering already-consumed bytes
+                # must be discarded outright, not left in `pending` forever --
+                # but only once consume() has actually run. Before that,
+                # base_seq is merely the earliest segment received so far, and
+                # an out-of-order arrival ending exactly at base_seq is a
+                # legitimate missing prefix, not a stale retransmission.
+                if state.has_consumed and end <= state.base_seq:
+                    del state.pending[sequence]
+                    changed = True
+                    break
                 if end < state.base_seq or sequence > state.next_seq:
                     continue
                 if end <= state.next_seq and sequence >= state.base_seq:
+                    # Fully inside the already-buffered range. Bug #3: compare
+                    # bytes before discarding instead of assuming they match.
+                    offset = sequence - state.base_seq
+                    existing = bytes(state.buffer[offset : offset + len(segment.payload)])
+                    if existing and existing != segment.payload:
+                        conflict = True
                     del state.pending[sequence]
                     changed = True
                     break
@@ -105,11 +151,16 @@ class TCPStreamBuffers:
                     state.first_timestamp = segment.timestamp
                 if sequence <= state.next_seq and end > state.next_seq:
                     overlap = state.next_seq - sequence
-                    state.buffer.extend(segment.payload[overlap:])
+                    if overlap > 0 and overlap <= len(state.buffer):
+                        existing_tail = bytes(state.buffer[-overlap:])
+                        if existing_tail != segment.payload[:overlap]:
+                            conflict = True
+                    state.buffer.extend(segment.payload[max(overlap, 0) :])
                     state.next_seq = end
                 del state.pending[sequence]
                 changed = True
                 break
+        return conflict
 
     def feed(self, packet, packet_number: int) -> TCPStreamState | None:
         endpoints = ip_endpoints(packet)
@@ -170,7 +221,8 @@ class TCPStreamBuffers:
             existing = state.pending.get(sequence)
             if existing is None or len(payload) > len(existing.payload):
                 state.pending[sequence] = segment
-            self._merge_pending(state)
+            if self._merge_pending(state):
+                self.conflicting_overlaps += 1
 
         buffered_bytes = self._state_size(state)
         self._total_buffered_bytes += buffered_bytes - previous_size
@@ -188,6 +240,7 @@ class TCPStreamBuffers:
         del state.buffer[:length]
         if state.base_seq is not None:
             state.base_seq += length
+        state.has_consumed = True
         state.first_packet_number = next_packet_number
         state.first_timestamp = next_timestamp
         self._total_buffered_bytes += self._state_size(state) - previous_size

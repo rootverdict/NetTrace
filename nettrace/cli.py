@@ -23,8 +23,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-c",
         "--config",
-        default="config.yaml",
-        help="Path to config.yaml",
+        default=None,
+        help="Path to config.yaml (defaults to ./config.yaml if present; a value given here must exist)",
     )
     parser.add_argument(
         "-o",
@@ -53,7 +53,8 @@ def main() -> None:
     output_dir = Path(args.output)
 
     try:
-        config = load_config(Path(args.config))
+        config_path = Path(args.config) if args.config is not None else Path("config.yaml")
+        config = load_config(config_path, explicit=args.config is not None)
     except (ConfigError, OSError) as exc:
         parser.error(f"configuration error: {exc}")
     try:

@@ -34,6 +34,7 @@ def analyze_flows(flows: list[Flow], thresholds: dict) -> list[Finding]:
                     description="Traffic used a port commonly seen in malware labs, backdoors, or tunneling.",
                     category="unusual_port",
                     timestamp=flow.first_seen,
+                    confidence="low",
                     evidence={
                         "src_ip": flow.src_ip,
                         "dst_ip": flow.dst_ip,
@@ -51,6 +52,7 @@ def analyze_flows(flows: list[Flow], thresholds: dict) -> list[Finding]:
                     description="Flow generated a high volume of packets and may require exfiltration or C2 review.",
                     category="high_frequency_connections",
                     timestamp=flow.first_seen,
+                    confidence="low",
                     evidence={
                         "src_ip": flow.src_ip,
                         "dst_ip": flow.dst_ip,

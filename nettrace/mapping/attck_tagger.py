@@ -65,11 +65,33 @@ def _refine_threat_intel_technique(finding: Finding) -> tuple[str, str] | None:
     return None
 
 
+_HTTP_PORTS = {80, 8080, 8000, 8888}
+_TLS_PORTS = {443, 4443, 8443, 9443}
+
+
+def _refine_network_beaconing(finding: Finding) -> tuple[str, str] | None:
+    """Only tag a technique when the destination port confirms the protocol.
+
+    Bug #1: the previous code mapped every non-DNS beacon straight to
+    T1071.001 (Web Protocols) even when the destination was, say, port 4444.
+    A beacon on an unconfirmed port is reported without an ATT&CK id rather
+    than guessing.
+    """
+    port = finding.evidence.get("dst_port")
+    if port in _HTTP_PORTS:
+        return "T1071.001", "Application Layer Protocol: Web Protocols"
+    if port in _TLS_PORTS:
+        return "T1573", "Encrypted Channel"
+    return None
+
+
 def tag_findings(findings: list[Finding]) -> None:
     for finding in findings:
         attack = ATTACK_MAP.get(finding.category)
         if finding.category == "threat_intel_match":
             attack = _refine_threat_intel_technique(finding) or attack
+        elif finding.category == "network_beaconing":
+            attack = _refine_network_beaconing(finding)
         if attack:
             finding.attack_id, finding.attack_name = attack
             if finding.attack_id not in finding.tags:

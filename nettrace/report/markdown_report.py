@@ -172,15 +172,42 @@ def build_analyst_paragraph(report: dict[str, Any], victim: str, urls: list[str]
     summary = report.get("summary", {})
     url_text = ", ".join(markdown_code(url) for url in urls[:5]) if urls else "no plaintext HTTP staging URLs"
     ip_text = ", ".join(markdown_code(ip) for ip in ips[:8]) if ips else "no public C2 candidates"
-    return (
-        f"NetTrace analyzed {markdown_code(report.get('pcap_path', 'unknown'))} and identified {markdown_code(victim)} as the primary "
-        f"internal host. The capture contains {summary.get('dns_events', 0)} DNS events, "
-        f"{summary.get('http_events', 0)} plaintext HTTP requests, {summary.get('tls_events', 0)} TLS SNI events, "
-        f"{summary.get('ftp_events', 0)} FTP commands, and {summary.get('flows', 0)} flows. The strongest analyst signal is the combination of HTTP staging "
-        f"activity ({url_text}) and high-volume or encrypted traffic involving {ip_text}. These behaviors are "
-        "consistent with malware staging and command-and-control triage, while heuristic findings should be "
-        "validated with packet context."
+    findings = report.get("findings", [])
+    findings_count = summary.get("findings", len(findings))
+    strong_findings = sum(1 for finding in findings if finding.get("severity") in {"high", "critical"})
+
+    host_clause = (
+        f"identified {markdown_code(victim)} as the internal host with the highest observed external traffic "
+        "volume (a triage heuristic, not confirmation of compromise)"
+        if victim and victim != "unknown"
+        else "did not identify a single dominant internal host"
     )
+    base = (
+        f"NetTrace analyzed {markdown_code(report.get('pcap_path', 'unknown'))} and {host_clause}. "
+        f"The capture contains {summary.get('dns_events', 0)} DNS events, "
+        f"{summary.get('http_events', 0)} plaintext HTTP requests, {summary.get('tls_events', 0)} TLS SNI events, "
+        f"{summary.get('ftp_events', 0)} FTP commands, and {summary.get('flows', 0)} flows."
+    )
+
+    # Bug #18: the old text asserted "consistent with malware staging and C2
+    # triage" even on a capture with zero findings and zero staging URLs. The
+    # conclusion now scales with what was actually found.
+    if strong_findings:
+        conclusion = (
+            f" {strong_findings} high/critical-severity finding(s) were produced, with the strongest signal being "
+            f"HTTP staging activity ({url_text}) and high-volume or encrypted traffic involving {ip_text}. This "
+            "warrants malware staging and command-and-control triage; heuristic findings should still be validated "
+            "with packet context before conclusions are drawn."
+        )
+    elif findings_count:
+        conclusion = (
+            f" NetTrace produced {findings_count} lower-confidence heuristic finding(s) ({url_text}; {ip_text}) that "
+            "should be reviewed with packet context. None reached high or critical severity, so this capture does "
+            "not, on its own, establish malware staging or command-and-control activity."
+        )
+    else:
+        conclusion = " No behavioral findings were produced from this capture."
+    return base + conclusion
 
 
 def build_markdown(report: dict[str, Any], source: str = "", source_url: str = "") -> str:
@@ -233,7 +260,7 @@ def build_markdown(report: dict[str, Any], source: str = "", source_url: str = "
     lines.extend(
         [
             "",
-            "## ATT&CK Techniques",
+            "## Potential ATT&CK Technique Associations",
             "",
             bullet_list(techniques),
             "",

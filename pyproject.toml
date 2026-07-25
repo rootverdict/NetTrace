@@ -7,7 +7,7 @@ name = "nettrace-malware-analysis"
 version = "1.0.0"
 description = "Offline malware traffic analysis platform for PCAP triage, IOC extraction, ATT&CK mapping, and analyst reports."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.13"
 license = { file = "LICENSE" }
 authors = [
   { name = "Aryan" }
@@ -36,12 +36,14 @@ dependencies = [
   "scapy~=2.6",
   "jinja2~=3.1",
   "pyyaml~=6.0",
-  "requests~=2.32",
-  "pymisp~=2.4",
   "reportlab~=4.2"
 ]
 
 [project.optional-dependencies]
+misp = [
+  "pymisp~=2.4",
+  "requests~=2.32"
+]
 dev = [
   "pypdf~=6.0",
   "pytest~=8.4",

@@ -45,6 +45,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "max_flows": 50_000,
         "max_timeline_entries": 100_000,
         "max_flow_samples": 256,
+        "max_findings": 20_000,
         "max_tcp_streams": 10_000,
         "max_tcp_stream_buffer_bytes": 1_048_576,
         "max_tcp_pending_segments": 256,
@@ -92,6 +93,29 @@ def _number(value: Any, name: str, minimum: float = 0, maximum: float | None = N
 def _positive_integer(value: Any, name: str, minimum: int = 1) -> None:
     if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
         raise ConfigError(f"{name} must be an integer of at least {minimum}.")
+
+
+def _reject_unknown_keys(loaded: dict[str, Any] | None, name: str) -> None:
+    """Bug #13: a misspelled key like 'high_frequncy_connections' previously
+    merged in silently while the real threshold stayed at its default, with
+    no warning. Unknown keys at these two levels are now a hard config error."""
+    if not loaded:
+        return
+    for section in ("thresholds", "misp", "limits", "protocols", "intel"):
+        section_value = loaded.get(section)
+        if not isinstance(section_value, dict):
+            continue
+        known = set(INTEL_KEYS) if section == "intel" else set(DEFAULT_CONFIG.get(section, {}).keys())
+        unknown = set(section_value.keys()) - known
+        if unknown:
+            raise ConfigError(
+                f"Unknown key(s) in {name} {section}: {sorted(unknown)}. "
+                f"Known keys: {sorted(known)}."
+            )
+    known_top = set(DEFAULT_CONFIG.keys()) | {"intel"}
+    unknown_top = set(loaded.keys()) - known_top
+    if unknown_top:
+        raise ConfigError(f"Unknown top-level key(s) in {name}: {sorted(unknown_top)}.")
 
 
 def validate_config(config: dict[str, Any]) -> None:
@@ -152,7 +176,14 @@ def resolve_intel_paths(config: dict[str, Any], base_dir: Path, overridden_keys:
     return resolved
 
 
-def load_config(path: Path) -> dict[str, Any]:
+def load_config(path: Path, explicit: bool = False) -> dict[str, Any]:
+    """Load config.
+
+    ``explicit`` should be True when the path came from a user-provided ``-c``
+    flag rather than the packaged default filename. Bug #12: previously a
+    missing file silently fell back to defaults in both cases, so a typo'd
+    ``-c confg.yaml`` looked like it worked while actually using defaults.
+    """
     config = DEFAULT_CONFIG
     if DEFAULT_THRESHOLDS_PATH.exists():
         with DEFAULT_THRESHOLDS_PATH.open("r", encoding="utf-8") as handle:
@@ -165,6 +196,8 @@ def load_config(path: Path) -> dict[str, Any]:
         _mapping(thresholds, "packaged thresholds.thresholds")
         config = deep_merge(config, {"thresholds": thresholds})
     if not path.exists():
+        if explicit:
+            raise ConfigError(f"Config file not found: {path}")
         validate_config(config)
         return resolve_intel_paths(config, PROJECT_ROOT)
     with path.open("r", encoding="utf-8") as handle:
@@ -175,6 +208,7 @@ def load_config(path: Path) -> dict[str, Any]:
     loaded = _mapping(loaded, "config root")
     if "intel" in loaded:
         _mapping(loaded["intel"], "intel")
+    _reject_unknown_keys(loaded, str(path))
     overridden_keys = set((loaded.get("intel") or {}).keys())
     merged = deep_merge(config, loaded)
     validate_config(merged)
