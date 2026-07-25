@@ -222,9 +222,13 @@ class TCPStreamBuffers:
             )
             if not belongs_to_current_range:
                 self._remove_stream(key, discarded=True)
+
+        has_fin_or_rst = bool(flags & 0x05)
+        if not payload and has_fin_or_rst:
+            self._remove_stream(key, discarded=True)
+            return None
+
         if not payload:
-            if flags & 0x05:  # FIN or RST
-                self._remove_stream(key, discarded=True)
             return None
 
         state = self._streams.get(key)
@@ -272,6 +276,11 @@ class TCPStreamBuffers:
             self._remove_stream(next(iter(self._streams)), discarded=True)
         if key not in self._streams:
             return None
+
+        if has_fin_or_rst:
+            self._remove_stream(key, discarded=True)
+            return None
+
         return state
 
     def consume(self, state: TCPStreamState, length: int, next_packet_number: int, next_timestamp: float) -> None:
