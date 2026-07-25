@@ -65,11 +65,14 @@
     <tr><td>Ftp Events</td><td>0</td></tr>
     <tr><td>Flows</td><td>3</td></tr>
     <tr><td>Iocs</td><td>3</td></tr>
+    <tr><td>Iocs Confirmed</td><td>3</td></tr>
+    <tr><td>Iocs Observed</td><td>0</td></tr>
+    <tr><td>Observed Artifacts</td><td>0</td></tr>
     <tr><td>Findings</td><td>6</td></tr>
     <tr><td>Critical</td><td>2</td></tr>
     <tr><td>High</td><td>1</td></tr>
-    <tr><td>Medium</td><td>3</td></tr>
-    <tr><td>Low</td><td>0</td></tr>
+    <tr><td>Medium</td><td>1</td></tr>
+    <tr><td>Low</td><td>1</td></tr>
   </table></div>
 
   <h2>Findings</h2>
@@ -103,9 +106,10 @@
     <h3><span class="badge">HIGH</span>Possible DGA domain</h3>
     <p>Domain structure has high entropy and weak language-like character patterns.</p>
     <p><strong>MITRE ATT&CK:</strong> T1568.002 Dynamic Resolution: Domain Generation Algorithms</p>
-    <p><strong>Score:</strong> 70</p>
+    <p><strong>Score:</strong> 82</p>
     <details><summary>Packet evidence</summary><code>{
   &#34;domain&#34;: &#34;xj3k9q2z7m1p0a8c.biz&#34;,
+  &#34;scored_label&#34;: &#34;xj3k9q2z7m1p0a8c&#34;,
   &#34;entropy&#34;: 4.0,
   &#34;dga_score&#34;: 0.981,
   &#34;packet_number&#34;: 7,
@@ -113,23 +117,8 @@
 }</code></details>
   </div>
   <div class="finding medium">
-    <h3><span class="badge">MEDIUM</span>Suspicious HTTP user agent</h3>
-    <p>HTTP request used a user agent that appears in the local suspicious list.</p>
-    <p><strong>MITRE ATT&CK:</strong> T1071.001 Application Layer Protocol: Web Protocols</p>
-    <p><strong>Score:</strong> 65</p>
-    <details><summary>Packet evidence</summary><code>{
-  &#34;host&#34;: &#34;malware-test.example&#34;,
-  &#34;uri&#34;: &#34;/payload.exe&#34;,
-  &#34;user_agent&#34;: &#34;python-requests/2.28&#34;,
-  &#34;src_ip&#34;: &#34;10.0.0.5&#34;,
-  &#34;dst_ip&#34;: &#34;198.51.100.23&#34;,
-  &#34;packet_number&#34;: 8,
-  &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
-}</code></details>
-  </div>
-  <div class="finding medium">
-    <h3><span class="badge">MEDIUM</span>Executable download over HTTP</h3>
-    <p>HTTP URI suggests retrieval of an executable or script payload.</p>
+    <h3><span class="badge">MEDIUM</span>Possible executable/script download request</h3>
+    <p>HTTP GET/HEAD requested an executable or script path.</p>
     <p><strong>MITRE ATT&CK:</strong> T1071.001 Application Layer Protocol: Web Protocols</p>
     <p><strong>Score:</strong> 65</p>
     <details><summary>Packet evidence</summary><code>{
@@ -139,11 +128,10 @@
   &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
 }</code></details>
   </div>
-  <div class="finding medium">
-    <h3><span class="badge">MEDIUM</span>Connection to suspicious non-standard port</h3>
+  <div class="finding low">
+    <h3><span class="badge">LOW</span>Connection to suspicious non-standard port</h3>
     <p>Traffic used a port commonly seen in malware labs, backdoors, or tunneling.</p>
-    <p><strong>MITRE ATT&CK:</strong> T1571 Non-Standard Port</p>
-    <p><strong>Score:</strong> 50</p>
+    <p><strong>Score:</strong> 32</p>
     <details><summary>Packet evidence</summary><code>{
   &#34;src_ip&#34;: &#34;10.0.0.5&#34;,
   &#34;dst_ip&#34;: &#34;203.0.113.66&#34;,
@@ -161,6 +149,20 @@
   &#34;wireshark_filter&#34;: &#34;frame.number in {1 2 3 4 5 6}&#34;
 }</code></details>
   </div>
+  <div class="finding info">
+    <h3><span class="badge">INFO</span>Command-line or automation HTTP client observed</h3>
+    <p>HTTP request used a scripting/automation client (e.g. curl, wget, python-requests). This is common for legitimate developer, CI, and monitoring traffic -- treat as low-confidence context, not a standalone indicator, unless combined with other suspicious signals.</p>
+    <p><strong>Score:</strong> 2</p>
+    <details><summary>Packet evidence</summary><code>{
+  &#34;host&#34;: &#34;malware-test.example&#34;,
+  &#34;uri&#34;: &#34;/payload.exe&#34;,
+  &#34;user_agent&#34;: &#34;python-requests/2.28&#34;,
+  &#34;src_ip&#34;: &#34;10.0.0.5&#34;,
+  &#34;dst_ip&#34;: &#34;198.51.100.23&#34;,
+  &#34;packet_number&#34;: 8,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
+}</code></details>
+  </div>
 
   <h2>IOCs</h2>
   <div class="panel"><table>
@@ -168,6 +170,11 @@
     <tr><td>domain</td><td>malware-test.example</td><td>http_host</td></tr>
     <tr><td>domain</td><td>xj3k9q2z7m1p0a8c.biz</td><td>dns</td></tr>
     <tr><td>url</td><td>http://malware-test.example/payload.exe</td><td>http_request</td></tr>
+  </table></div>
+
+  <h2>Observed Artifacts</h2>
+  <div class="panel"><table>
+    <tr><th>Type</th><th>Value</th><th>Source</th></tr>
   </table></div>
 
   <h2>Timeline</h2>
@@ -180,8 +187,8 @@
     <tr><td>65.000</td><td>flow</td><td>10.0.0.5:53000 -&gt; 8.8.8.8:53 UDP</td></tr>
     <tr><td>70.000</td><td>http</td><td>http://malware-test.example/payload.exe</td></tr>
     <tr><td>70.000</td><td>flow</td><td>10.0.0.5:51515 -&gt; 198.51.100.23:80 TCP</td></tr>
-    <tr><td>70.000</td><td>finding</td><td>Suspicious HTTP user agent</td></tr>
-    <tr><td>70.000</td><td>finding</td><td>Executable download over HTTP</td></tr>
+    <tr><td>70.000</td><td>finding</td><td>Command-line or automation HTTP client observed</td></tr>
+    <tr><td>70.000</td><td>finding</td><td>Possible executable/script download request</td></tr>
   </table></div>
 </main>
 </body>

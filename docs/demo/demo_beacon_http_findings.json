@@ -8,11 +8,14 @@
     "ftp_events": 0,
     "flows": 3,
     "iocs": 3,
+    "iocs_confirmed": 3,
+    "iocs_observed": 0,
+    "observed_artifacts": 0,
     "findings": 6,
     "critical": 2,
     "high": 1,
-    "medium": 3,
-    "low": 0
+    "medium": 1,
+    "low": 1
   },
   "dns_events": [
     {
@@ -37,6 +40,9 @@
       "uri": "/payload.exe",
       "user_agent": "python-requests/2.28",
       "packet_number": 8,
+      "src_port": 51515,
+      "dst_port": 80,
+      "stream_offset": 0,
       "url": "http://malware-test.example/payload.exe"
     }
   ],
@@ -116,27 +122,32 @@
       "kind": "domain",
       "value": "malware-test.example",
       "source": "http_host",
-      "packet_number": 8
+      "packet_number": 8,
+      "confidence": "confirmed"
     },
     {
       "kind": "domain",
       "value": "xj3k9q2z7m1p0a8c.biz",
       "source": "dns",
-      "packet_number": 7
+      "packet_number": 7,
+      "confidence": "confirmed"
     },
     {
       "kind": "url",
       "value": "http://malware-test.example/payload.exe",
       "source": "http_request",
-      "packet_number": 8
+      "packet_number": 8,
+      "confidence": "confirmed"
     }
   ],
+  "observed_artifacts": [],
   "findings": [
     {
       "title": "Possible DGA domain",
       "description": "Domain structure has high entropy and weak language-like character patterns.",
       "evidence": {
         "domain": "xj3k9q2z7m1p0a8c.biz",
+        "scored_label": "xj3k9q2z7m1p0a8c",
         "entropy": 4.0,
         "dga_score": 0.981,
         "packet_number": 7,
@@ -147,15 +158,16 @@
       "attack_id": "T1568.002",
       "attack_name": "Dynamic Resolution: Domain Generation Algorithms",
       "severity": "high",
-      "score": 70,
+      "score": 82,
+      "confidence": "high",
       "tags": [
         "dga",
         "T1568.002"
       ]
     },
     {
-      "title": "Suspicious HTTP user agent",
-      "description": "HTTP request used a user agent that appears in the local suspicious list.",
+      "title": "Command-line or automation HTTP client observed",
+      "description": "HTTP request used a scripting/automation client (e.g. curl, wget, python-requests). This is common for legitimate developer, CI, and monitoring traffic -- treat as low-confidence context, not a standalone indicator, unless combined with other suspicious signals.",
       "evidence": {
         "host": "malware-test.example",
         "uri": "/payload.exe",
@@ -165,21 +177,21 @@
         "packet_number": 8,
         "wireshark_filter": "frame.number == 8"
       },
-      "category": "http_c2",
+      "category": "http_automation_client",
       "timestamp": 70.0,
-      "attack_id": "T1071.001",
-      "attack_name": "Application Layer Protocol: Web Protocols",
-      "severity": "medium",
-      "score": 65,
+      "attack_id": null,
+      "attack_name": null,
+      "severity": "info",
+      "score": 2,
+      "confidence": "low",
       "tags": [
         "http",
-        "user-agent",
-        "T1071.001"
+        "user-agent"
       ]
     },
     {
-      "title": "Executable download over HTTP",
-      "description": "HTTP URI suggests retrieval of an executable or script payload.",
+      "title": "Possible executable/script download request",
+      "description": "HTTP GET/HEAD requested an executable or script path.",
       "evidence": {
         "url": "http://malware-test.example/payload.exe",
         "method": "GET",
@@ -192,6 +204,7 @@
       "attack_name": "Application Layer Protocol: Web Protocols",
       "severity": "medium",
       "score": 65,
+      "confidence": "medium",
       "tags": [
         "http",
         "payload",
@@ -219,13 +232,13 @@
       },
       "category": "unusual_port",
       "timestamp": 0.0,
-      "attack_id": "T1571",
-      "attack_name": "Non-Standard Port",
-      "severity": "medium",
-      "score": 50,
+      "attack_id": null,
+      "attack_name": null,
+      "severity": "low",
+      "score": 32,
+      "confidence": "low",
       "tags": [
-        "non-standard-port",
-        "T1571"
+        "non-standard-port"
       ]
     },
     {
@@ -244,6 +257,7 @@
       "attack_name": "Application Layer Protocol: Web Protocols",
       "severity": "critical",
       "score": 95,
+      "confidence": "medium",
       "tags": [
         "IOC_MATCH",
         "LOCAL_INTEL",
@@ -266,6 +280,7 @@
       "attack_name": "Application Layer Protocol: DNS",
       "severity": "critical",
       "score": 95,
+      "confidence": "medium",
       "tags": [
         "IOC_MATCH",
         "LOCAL_INTEL",
@@ -312,12 +327,12 @@
     {
       "timestamp": 70.0,
       "type": "finding",
-      "summary": "Suspicious HTTP user agent"
+      "summary": "Command-line or automation HTTP client observed"
     },
     {
       "timestamp": 70.0,
       "type": "finding",
-      "summary": "Executable download over HTTP"
+      "summary": "Possible executable/script download request"
     }
   ],
   "warnings": []

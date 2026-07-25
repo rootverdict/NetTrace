@@ -6,13 +6,13 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 
 ## Scan Summary
 
-| Sample | Packets | DNS | HTTP | TLS | FTP | Flows | IOCs | Findings |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Emotet Epoch 5 | 19895 | 327 | 8 | 32 | 0 | 813 | 180 | 32 |
-| Raspberry Robin | 91481 | 4 | 0 | 0 | 0 | 51 | 20 | 42 |
-| Redtail Linux malware | 43041 | 0 | 3 | 0 | 0 | 40687 | 40650 | 2 |
-| AgentTesla FTP variant | 182 | 6 | 0 | 1 | 14 | 10 | 7 | 6 |
-| SmartApeSG to NetSupport RAT | 16931 | 8 | 32 | 9 | 0 | 16 | 12 | 4 |
+| Sample | Packets | DNS | HTTP | TLS | FTP | Flows | IOCs | Observed Artifacts | Findings |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Emotet Epoch 5 | 19895 | 327 | 8 | 32 | 0 | 813 | 134 | 81 | 32 |
+| Raspberry Robin | 91481 | 4 | 0 | 0 | 0 | 51 | 5 | 17 | 42 |
+| Redtail Linux malware | 43041 | 0 | 3 | 0 | 0 | 40687 | 4 | 40647 | 5 |
+| AgentTesla FTP variant | 182 | 6 | 0 | 1 | 14 | 10 | 7 | 2 | 6 |
+| SmartApeSG to NetSupport RAT | 16931 | 8 | 32 | 9 | 0 | 16 | 12 | 4 | 4 |
 
 ## Aggregate Totals
 
@@ -22,8 +22,9 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 - TLS events: 42
 - FTP events: 14
 - Flows: 41577
-- IOCs: 40869
-- Findings: 86
+- IOCs: 162
+- Observed artifacts: 40751
+- Findings: 89
 
 ## Potential ATT&CK Technique Associations
 
@@ -43,6 +44,10 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 - Possible beaconing behavior: 1
 - Unusually long TLS SNI: 1
 
+### Potential ATT&CK Technique Associations
+
+- `T1573 - Encrypted Channel`
+
 ### Notable URLs
 
 - `http://aristonbentre.com/slideshow/O1uPzXd2YscA/`
@@ -53,25 +58,33 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 
 ### Notable Domains
 
+- `a767.dspw65.akamai.net`
+- `ak.privatelink.msidentity.com`
 - `applink.gr`
+- `arc.trafficmanager.net`
 - `aristonbentre.com`
 - `asakitreks.com`
+- `atm-settingsfe-prod-geo2.trafficmanager.net`
 - `attatory.com`
+- `bg.apr-52dd2-0503.edgecastdns.net`
 - `bitefreehand-dc.bitethefreehand.net`
 - `bitethefreehand.net`
 - `bluegdps100.7m.pl`
-- `bvdkhuyentanyen.vn`
 
 ### Notable IPs And Ports
 
-- `72.21.81.200`
-- `52.159.126.152`
+- `224.0.0.252:5355`
 - `13.107.5.88`
 - `213.79.120.196:443`
 - `112.213.89.130:80`
 - `95.216.27.211:443`
 - `150.60.21.231:80`
 - `91.237.33.134:443`
+- `103.77.162.25:80`
+- `149.202.75.212:80`
+- `91.200.103.154:443`
+- `138.197.14.67:8080`
+- `93.84.115.205:0`
 
 ## Raspberry Robin
 
@@ -93,11 +106,9 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 
 - `2z.si`
 - `735dba63.bright-witted.skin`
-- `www.vfnbzcosotyp.com`
 
 ### Notable IPs And Ports
 
-- `38.180.208.173`
 - `172.67.153.95:443`
 - `194.165.16.82:443`
 - `185.141.56.26:443`
@@ -105,16 +116,22 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 - `139.99.134.168:80`
 - `194.26.192.77:110`
 - `139.99.170.35:443`
+- `62.141.48.175:444`
+- `162.251.116.50:443`
+- `193.219.97.25:9001`
+- `37.114.55.122:9001`
+- `38.180.208.173:443`
 
 ## Redtail Linux malware
 
 - Source: https://www.malware-traffic-analysis.net/2024/11/24/index.html
 - PCAP: `samples\real\2024-11-24-infection-by-Redtail-bash-script-from-45.202.35_190.pcap`
 - Primary internal host heuristic: `10.11.24.101`
-- Findings: 2
+- Findings: 5
 
 ### Finding Types
 
+- Command-line or automation HTTP client observed: 3
 - High-frequency connection: 2
 
 ### Notable URLs
@@ -125,18 +142,12 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 
 ### Notable Domains
 
-- `45.202.35.190`
+- None observed
 
 ### Notable IPs And Ports
 
 - `45.202.35.190:80`
 - `87.120.113.231:43782`
-- `1.1.107.147`
-- `1.10.42.45`
-- `1.101.228.228`
-- `1.103.127.173`
-- `1.104.177.55`
-- `1.105.162.243`
 
 ## AgentTesla FTP variant
 
@@ -149,10 +160,6 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 
 - File upload over FTP: 4
 - Cleartext FTP credentials: 2
-
-### Potential ATT&CK Technique Associations
-
-- None observed
 
 ### Notable URLs
 
@@ -196,14 +203,12 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 
 ### Notable IPs And Ports
 
-- `194.180.191.64`
 - `34.42.173.126:443`
 - `185.33.84.25:443`
 - `194.180.191.64:443`
 - `104.26.0.231`
 - `104.26.1.231`
 - `172.67.68.212`
-- `185.33.84.25`
 
 ## Notes
 

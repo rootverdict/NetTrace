@@ -236,16 +236,17 @@ By default, the script writes one separate file per scan:
 findings/2023-03-17-Emotet-E5-infection-traffic_FINDINGS.md
 ```
 
-To create or update the root showcase report, pass `-o FINDINGS.md`:
+To create or update the root aggregate showcase report from the five real-capture JSON outputs, run:
 
 ```powershell
-python tools\generate_findings_md.py output\real\2023-03-17-Emotet-E5-infection-traffic_findings.json -o FINDINGS.md --source "Malware-Traffic-Analysis.net - 2023-03-17 Emotet Epoch 5 Activity" --source-url "https://www.malware-traffic-analysis.net/2023/03/17/index.html"
+python tools\generate_real_findings.py
 ```
 
 The generated Markdown includes:
 
 - dataset metadata
 - summary counts
+- observed artifact counts
 - analyst paragraph
 - finding type counts
 - potential ATT&CK technique associations
