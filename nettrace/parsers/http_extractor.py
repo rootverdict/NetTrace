@@ -84,6 +84,9 @@ def extract_http_event(
         uri=redact_sensitive_query_params(uri),
         user_agent=user_agent,
         packet_number=packet_number,
+        src_port=int(tcp.sport),
+        dst_port=int(tcp.dport),
+        stream_offset=int(tcp.seq),
     )
 
 
@@ -141,6 +144,9 @@ class HTTPStreamExtractor:
                         uri=redact_sensitive_query_params(uri),
                         user_agent=user_agent,
                         packet_number=state.first_packet_number,
+                        src_port=state.src_port,
+                        dst_port=state.dst_port,
+                        stream_offset=state.base_seq or 0,
                     )
                 )
                 self.streams.consume(state, total_length, packet_number, float(packet.time))

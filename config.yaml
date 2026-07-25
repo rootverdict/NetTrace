@@ -23,6 +23,7 @@ misp:
   timeout_seconds: 10
 
 protocols:
+  tcp_overlap_policy: reject-conflicting-overlap
   http_ports:
     - 80
     - 8000
@@ -37,7 +38,10 @@ limits:
   max_flows: 50000
   max_timeline_entries: 100000
   max_flow_samples: 256
+  max_findings: 20000
   max_tcp_streams: 10000
   max_tcp_stream_buffer_bytes: 1048576
   max_tcp_pending_segments: 256
   max_tcp_total_buffer_bytes: 67108864
+  max_tcp_stream_idle_seconds: 300
+  max_fragment_age_seconds: 60

@@ -16,6 +16,7 @@ def sample_report() -> AnalysisReport:
         ftp_events=[],
         flows=[],
         iocs=[IOC("domain", "bad.example", "dns", packet_number=7)],
+        observed_artifacts=[IOC("ip", "45.33.32.156", "flow:tcp:443", packet_number=8, confidence="observed")],
         findings=[
             Finding(
                 title="Suspicious <script> activity",
@@ -46,6 +47,8 @@ def test_export_json_creates_parent_and_serializes_complete_report(tmp_path):
     assert data["summary"]["packets"] == 12
     assert data["summary"]["high"] == 1
     assert data["iocs"][0]["packet_number"] == 7
+    assert data["observed_artifacts"][0]["packet_number"] == 8
+    assert data["summary"]["observed_artifacts"] == 1
     assert data["warnings"] == ["Capture was truncated"]
     assert len(data["timeline"]) == 201
 
@@ -61,6 +64,8 @@ def test_render_html_creates_parent_escapes_content_and_limits_timeline(tmp_path
     assert "Capture was truncated" in html
     assert "Suspicious &lt;script&gt; activity" in html
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+    assert "Observed Artifacts" in html
+    assert "45.33.32.156" in html
     assert "Timeline truncated to 200 entries" in html
     assert "event 199" in html
     assert "event 200" not in html

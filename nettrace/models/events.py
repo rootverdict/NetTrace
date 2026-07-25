@@ -77,6 +77,9 @@ class HTTPEvent:
     uri: str
     user_agent: str = ""
     packet_number: int = 0
+    src_port: int = 0
+    dst_port: int = 0
+    stream_offset: int = 0
 
     @property
     def url(self) -> str:

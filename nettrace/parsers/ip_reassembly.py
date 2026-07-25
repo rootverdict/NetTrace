@@ -15,6 +15,7 @@ class _FragmentState:
     first_fragment: object | None = None
     first_packet_number: int = 0
     first_timestamp: float = 0.0
+    last_timestamp: float = 0.0
 
 
 class IPFragmentReassembler:
@@ -25,10 +26,12 @@ class IPFragmentReassembler:
         max_datagrams: int = 1_024,
         max_total_bytes: int = 8_388_608,
         max_fragments_per_datagram: int = 256,
+        max_age_seconds: float = 60.0,
     ) -> None:
         self.max_datagrams = max_datagrams
         self.max_total_bytes = max_total_bytes
         self.max_fragments_per_datagram = max_fragments_per_datagram
+        self.max_age_seconds = max(0.0, float(max_age_seconds))
         self._datagrams: OrderedDict[tuple, _FragmentState] = OrderedDict()
         self._stored_bytes = 0
         self.discarded_datagrams = 0
@@ -48,6 +51,14 @@ class IPFragmentReassembler:
             len(self._datagrams) > self.max_datagrams or self._stored_bytes > self.max_total_bytes
         ):
             self._discard(next(iter(self._datagrams)))
+
+    def _expire_old(self, current_timestamp: float) -> None:
+        if self.max_age_seconds <= 0:
+            return
+        for key, state in list(self._datagrams.items()):
+            last_seen = state.last_timestamp or state.first_timestamp
+            if current_timestamp - last_seen > self.max_age_seconds:
+                self._discard(key)
 
     @staticmethod
     def _assemble(state: _FragmentState) -> bytes | None:
@@ -92,6 +103,8 @@ class IPFragmentReassembler:
         return parsed
 
     def feed(self, packet, packet_number: int) -> tuple[object, int] | None:
+        timestamp = float(getattr(packet, "time", 0.0))
+        self._expire_old(timestamp)
         if packet.haslayer(IP):
             ip = packet[IP]
             if int(ip.frag) == 0 and not bool(ip.flags.MF):
@@ -120,6 +133,7 @@ class IPFragmentReassembler:
             self._datagrams[key] = state
         else:
             self._datagrams.move_to_end(key)
+        state.last_timestamp = timestamp
 
         existing = state.fragments.get(offset)
         if existing is not None and existing != payload:
@@ -141,7 +155,8 @@ class IPFragmentReassembler:
         if offset == 0:
             state.first_fragment = packet
             state.first_packet_number = packet_number
-            state.first_timestamp = float(packet.time)
+            state.first_timestamp = timestamp
+            state.last_timestamp = timestamp
         if not more_fragments:
             total_length = offset + len(payload)
             if state.total_length is not None and state.total_length != total_length:

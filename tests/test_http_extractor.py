@@ -81,3 +81,21 @@ def test_chunked_body_is_not_parsed_as_another_request():
     events = HTTPStreamExtractor().feed(packet, 1)
 
     assert [(event.method, event.uri) for event in events] == [("POST", "/upload")]
+
+
+def test_streamed_http_events_include_ports_and_stream_offsets():
+    payload = (
+        b"GET /one HTTP/1.1\r\nHost: first.example\r\n\r\n"
+        b"GET /one HTTP/1.1\r\nHost: second.example\r\n\r\n"
+    )
+    packet = IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=51515, dport=80, seq=100, flags="PA") / Raw(
+        load=payload
+    )
+    packet.time = 1.0
+
+    events = HTTPStreamExtractor().feed(packet, 9)
+
+    assert [event.host for event in events] == ["first.example", "second.example"]
+    assert [event.src_port for event in events] == [51515, 51515]
+    assert [event.dst_port for event in events] == [80, 80]
+    assert [event.stream_offset for event in events] == [100, 142]

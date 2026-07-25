@@ -27,7 +27,7 @@ def test_ipv4_fragments_reassemble_and_keep_first_packet_metadata():
     reassembler = IPFragmentReassembler()
     first = ipv4_fragment(10, 0, b"ABCDEFGH")
     second = ipv4_fragment(10, 1, b"IJKL", more=False)
-    second.time = 99.0
+    second.time = 11.0
 
     assert reassembler.feed(first, 3) is None
     rebuilt, packet_number = reassembler.feed(second, 4)
@@ -93,3 +93,17 @@ def test_conflicting_final_lengths_discard_datagram():
 
     assert reassembler.discarded_datagrams == 1
     assert reassembler.incomplete_datagrams == 0
+
+
+def test_stale_fragment_datagram_expires_by_timestamp():
+    reassembler = IPFragmentReassembler(max_age_seconds=5)
+    first = ipv4_fragment(60, 0, b"A" * 8)
+    second = ipv4_fragment(61, 0, b"B" * 8)
+    first.time = 1.0
+    second.time = 7.1
+
+    assert reassembler.feed(first, 1) is None
+    assert reassembler.feed(second, 2) is None
+
+    assert reassembler.discarded_datagrams == 1
+    assert reassembler.incomplete_datagrams == 1

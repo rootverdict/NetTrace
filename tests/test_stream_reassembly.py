@@ -334,6 +334,23 @@ def test_engine_uses_configured_http_ports(tmp_path):
     assert any(finding.title == "Possible executable/script download request" for finding in report.findings)
 
 
+def test_engine_keeps_same_packet_http_requests_with_different_hosts(tmp_path):
+    payload = (
+        b"GET / HTTP/1.1\r\nHost: first.example\r\n\r\n"
+        b"GET / HTTP/1.1\r\nHost: second.example\r\n\r\n"
+    )
+    packet = IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=51515, dport=80, seq=100, flags="PA") / Raw(
+        load=payload
+    )
+    packet.time = 1.0
+    capture = tmp_path / "pipelined-hosts.pcap"
+    wrpcap(str(capture), [packet])
+
+    report = analyze_pcap(capture, load_config(Path("does-not-exist.yaml")))
+
+    assert [event.host for event in report.http_events] == ["first.example", "second.example"]
+
+
 def test_engine_caps_findings_at_configured_max(tmp_path):
     # Bug #10: there was previously no cap -- a hostile/noisy capture could
     # produce an unbounded number of findings.
@@ -391,3 +408,22 @@ def test_engine_surfaces_incomplete_stream_warning(tmp_path):
     report = analyze_pcap(capture, load_config(Path("does-not-exist.yaml")))
 
     assert any("incomplete stream" in warning for warning in report.warnings)
+
+
+def test_engine_expires_idle_tcp_streams(tmp_path):
+    stale = IP(src="10.0.0.5", dst="45.33.32.156") / TCP(sport=50000, dport=80, seq=100, flags="PA") / Raw(
+        load=b"GET /stale"
+    )
+    later = IP(src="10.0.0.6", dst="45.33.32.157") / TCP(sport=50001, dport=80, seq=100, flags="PA") / Raw(
+        load=b"GET /later"
+    )
+    stale.time = 1.0
+    later.time = 10.0
+    capture = tmp_path / "idle-tcp.pcap"
+    wrpcap(str(capture), [stale, later])
+    config = load_config(Path("does-not-exist.yaml"))
+    config["limits"]["max_tcp_stream_idle_seconds"] = 5
+
+    report = analyze_pcap(capture, config)
+
+    assert any("TCP reassembly discarded 1 incomplete or resource-limited streams." in warning for warning in report.warnings)

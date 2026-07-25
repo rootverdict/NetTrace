@@ -1,11 +1,10 @@
 # NetTrace
 
 [![CI](https://github.com/rootverdict/NetTrace/actions/workflows/ci.yml/badge.svg)](https://github.com/rootverdict/NetTrace/actions/workflows/ci.yml)
-![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12-3776AB)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-NetTrace is a Python malware traffic analysis platform for offline PCAP analysis. It extracts network artifacts, identifies suspicious behavior, maps findings to MITRE ATT&CK techniques, and generates analyst-ready JSON, HTML, and PDF reports.
+NetTrace is a Python malware traffic analysis platform for offline PCAP analysis. It extracts network artifacts, identifies suspicious behavior, adds defensible MITRE ATT&CK associations where evidence supports them, and generates analyst-ready JSON, HTML, and PDF reports.
 
 The project is designed for malware traffic analysis, SOC triage, threat hunting practice, and detection engineering work.
 
@@ -22,7 +21,8 @@ Quick proof: [PDF demo report](docs/demo/demo_beacon_http_report.pdf) | [HTML de
 - Extracts plaintext HTTP methods, hosts, URIs, URLs, and user agents
 - Extracts TLS ClientHello SNI values on common TLS ports
 - Builds IP flow and conversation metadata
-- Extracts IOCs including domains, URLs, and public IP addresses
+- Extracts protocol-backed IOCs including domains, URLs, and public IP addresses
+- Exports raw public flow endpoint IPs separately as observed artifacts
 - Filters internal/private IPs and known public DNS resolvers from IOC output
 - Detects beaconing using interval regularity
 - Scores possible DGA domains using entropy and character-pattern analysis
@@ -32,7 +32,7 @@ Quick proof: [PDF demo report](docs/demo/demo_beacon_http_report.pdf) | [HTML de
 - Detects high-frequency flows and unusual ports
 - Supports local IOC matching
 - Supports optional MISP enrichment
-- Maps findings to MITRE ATT&CK
+- Adds potential MITRE ATT&CK technique associations
 - Scores finding severity
 - Builds a chronological activity timeline
 - Adds packet numbers and Wireshark `frame.number` filters to report evidence
@@ -64,7 +64,7 @@ Analysis layer
 Intel and mapping layer
   - Local IOC lookup
   - Optional MISP lookup
-  - MITRE ATT&CK tagging
+  - Potential MITRE ATT&CK associations
   - Severity scoring
   - Timeline building
   |
@@ -155,7 +155,7 @@ python -m pytest --cov=nettrace --cov-report=term
 Expected result:
 
 ```text
-110+ tests pass and total coverage remains at or above the enforced 80% threshold.
+The test suite passes and total coverage remains at or above the enforced 80% threshold.
 ```
 
 The same checks run automatically on Python 3.11 and 3.12 through GitHub Actions.
@@ -248,7 +248,7 @@ The generated Markdown includes:
 - summary counts
 - analyst paragraph
 - finding type counts
-- ATT&CK techniques
+- potential ATT&CK technique associations
 - notable URLs
 - notable domains
 - notable IPs and ports
@@ -302,7 +302,7 @@ The Emotet showcase analysis produced:
 - 180 IOCs
 - 32 findings
 
-The analyst write-up identifies Emotet staging URLs, C2 infrastructure, high-frequency encrypted flows, and ATT&CK-mapped behavior.
+The analyst write-up identifies Emotet staging URLs, C2 infrastructure candidates, high-frequency encrypted flows, and ATT&CK-associated behavior where protocol evidence supports the mapping.
 
 ## Validation And Performance
 
@@ -320,7 +320,7 @@ The five-capture benchmark corpus contains 171,530 packets and 41,577 flows. On 
 
 Rules and tunable values live in `nettrace/rules/`:
 
-- `attck_map.yaml` - maps finding categories to MITRE ATT&CK techniques
+- `attck_map.yaml` - maps finding categories to defensible MITRE ATT&CK technique associations
 - `thresholds.yaml` - stores detection thresholds
 - `suspicious_ports.yaml` - lists suspicious or non-standard ports
 - `dga_allowlist.yaml` - suppresses known benign DGA false positives

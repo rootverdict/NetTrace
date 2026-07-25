@@ -1,4 +1,4 @@
-from nettrace.analysis.ioc_extractor import extract_iocs
+from nettrace.analysis.ioc_extractor import extract_iocs, extract_observed_artifacts
 from nettrace.models.events import DNSEvent, Flow, HTTPEvent, TLSEvent
 
 
@@ -22,6 +22,20 @@ def test_url_ioc_preserves_case_sensitive_path_and_query():
 
     assert "example.com" in values
     assert "http://Example.COM/Payload.EXE?Token=ABC" in values
+
+
+def test_domain_iocs_are_idna_normalized_and_invalid_hosts_are_rejected():
+    dns = [
+        DNSEvent(1.0, "10.0.0.5", "8.8.8.8", "bücher.example", packet_number=1),
+        DNSEvent(2.0, "10.0.0.5", "8.8.8.8", "bad host.example", packet_number=2),
+        DNSEvent(3.0, "10.0.0.5", "8.8.8.8", "empty..label.example", packet_number=3),
+    ]
+
+    values = {ioc.value for ioc in extract_iocs(dns, [], [], [])}
+
+    assert "xn--bcher-kva.example" in values
+    assert "bad host.example" not in values
+    assert "empty..label.example" not in values
 
 
 def test_http_host_ip_is_not_added_as_domain_ioc():
@@ -89,11 +103,21 @@ def test_flow_sourced_ips_use_structured_source_for_both_directions():
         Flow("13.107.5.88", "150.60.21.231", 51515, 4444, "TCP", 1.0, 2.0),
     ]
 
-    iocs = extract_iocs([], [], [], flows)
+    iocs = extract_observed_artifacts(flows)
     sources = {ioc.value: ioc.source for ioc in iocs if ioc.kind == "ip"}
 
     assert sources["13.107.5.88"] == "flow:tcp:51515"
     assert sources["150.60.21.231"] == "flow:tcp:4444"
+
+
+def test_flow_sourced_ips_are_observed_artifacts_not_iocs():
+    flows = [Flow("10.0.0.5", "13.107.5.88", 50000, 443, "TCP", 1.0, 2.0)]
+
+    assert extract_iocs([], [], [], flows) == []
+    artifacts = extract_observed_artifacts(flows)
+
+    assert len(artifacts) == 1
+    assert artifacts[0].confidence == "observed"
 
 
 def test_absolute_form_http_url_is_not_prefixed_twice():
@@ -120,7 +144,7 @@ def test_ipv6_iocs_are_canonicalized():
         Flow("fd00::1", "2001:4860:4860:0:0:0:0:8888", 50000, 443, "TCP", 1.0, 2.0),
     ]
 
-    iocs = extract_iocs([], [], [], flows)
+    iocs = extract_observed_artifacts(flows)
 
     assert any(ioc.kind == "ip" and ioc.value == "2001:4860:4860::8888" for ioc in iocs)
 

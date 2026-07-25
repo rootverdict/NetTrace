@@ -49,7 +49,7 @@ def analyze_ftp_events(events: list[FTPEvent]) -> list[Finding]:
                         "channel. Confirm the destination is external/untrusted before "
                         "treating this as exfiltration."
                     ),
-                    category="ftp_exfiltration",
+                    category="ftp_upload",
                     timestamp=event.timestamp,
                     confidence="medium",
                     evidence={

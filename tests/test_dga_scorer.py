@@ -56,3 +56,15 @@ def test_score_domains_deduplicates_dns_names_case_insensitively():
     findings = score_domains(events, {"dga_entropy_threshold": 3.4, "dga_score_threshold": 0.6})
 
     assert len(findings) == 1
+
+
+def test_score_domains_skips_invalid_hostname_values():
+    events = [
+        DNSEvent(1.0, "10.0.0.5", "10.0.0.1", "bad host.example"),
+        DNSEvent(2.0, "10.0.0.5", "10.0.0.1", "www.xj3k9q2z7m1p0a8c.biz"),
+    ]
+
+    findings = score_domains(events, {"dga_entropy_threshold": 3.4, "dga_score_threshold": 0.6})
+
+    assert len(findings) == 1
+    assert findings[0].evidence["domain"] == "www.xj3k9q2z7m1p0a8c.biz"

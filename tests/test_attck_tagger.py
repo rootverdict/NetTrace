@@ -48,6 +48,16 @@ def test_threat_intel_flow_mapping_requires_exact_source_format():
     assert finding.attack_name == "Application Layer Protocol"
 
 
+def test_unusual_port_and_ftp_upload_are_not_mapped_from_weak_context():
+    unusual_port = Finding("port", "desc", {}, "unusual_port")
+    ftp_upload = Finding("ftp", "desc", {}, "ftp_upload")
+
+    tag_findings([unusual_port, ftp_upload])
+
+    assert unusual_port.attack_id is None
+    assert ftp_upload.attack_id is None
+
+
 def test_missing_attack_yaml_loads_empty_map(tmp_path):
     assert _load_attack_map(tmp_path / "missing.yaml") == {}
 

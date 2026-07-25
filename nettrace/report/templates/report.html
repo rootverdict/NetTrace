@@ -90,6 +90,14 @@
     {% endfor %}
   </table></div>
 
+  <h2>Observed Artifacts</h2>
+  <div class="panel"><table>
+    <tr><th>Type</th><th>Value</th><th>Source</th></tr>
+    {% for artifact in report.observed_artifacts[:500] %}
+    <tr><td>{{ artifact.kind }}</td><td>{{ artifact.value }}</td><td>{{ artifact.source }}</td></tr>
+    {% endfor %}
+  </table></div>
+
   <h2>Timeline</h2>
   <div class="panel"><table>
     <tr><th>Timestamp</th><th>Type</th><th>Summary</th></tr>

@@ -25,7 +25,7 @@ def analyze_tls_events(tls_events: list[TLSEvent], flows: list[Flow], thresholds
             findings.append(
                 Finding(
                     title="Long TLS session",
-                    description="Extended encrypted session may indicate proxying or command-and-control activity.",
+                    description="Extended confirmed TLS session may indicate encrypted command-and-control activity.",
                     category="long_tls_session",
                     timestamp=flow.first_seen,
                     evidence={

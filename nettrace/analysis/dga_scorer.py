@@ -7,6 +7,7 @@ from pathlib import Path
 
 import yaml
 
+from nettrace.analysis.domain_utils import normalize_domain
 from nettrace.analysis.evidence import packet_evidence
 from nettrace.models.events import DNSEvent
 from nettrace.models.findings import Finding
@@ -54,7 +55,9 @@ def _matches_suffix(normalized: str, suffix: str) -> bool:
 
 def is_allowlisted_domain(domain: str, allowlist: dict[str, list[str]] | None = None) -> bool:
     rules = _load_dga_allowlist() if allowlist is None else allowlist
-    normalized = domain.lower().rstrip(".")
+    normalized = normalize_domain(domain)
+    if normalized is None:
+        return False
     if any(normalized == exact for exact in rules.get("domains", [])):
         return True
     if any(_matches_suffix(normalized, suffix) for suffix in rules.get("suffixes", [])):
@@ -140,14 +143,16 @@ def score_domains(dns_events: list[DNSEvent], thresholds: dict) -> list[Finding]
     allowlist = _load_dga_allowlist()
     seen: set[str] = set()
     for event in dns_events:
-        normalized_query = event.query.lower().rstrip(".")
+        normalized_query = normalize_domain(event.query)
+        if normalized_query is None:
+            continue
         if normalized_query in seen:
             continue
         seen.add(normalized_query)
         if is_allowlisted_domain(event.query, allowlist):
             continue
-        label = scored_label(event.query)
-        score = dga_score(event.query)
+        label = scored_label(normalized_query)
+        score = dga_score(normalized_query)
         entropy = shannon_entropy(re.sub(r"[^a-z0-9]", "", label))
         if score >= score_threshold and entropy >= entropy_threshold:
             findings.append(

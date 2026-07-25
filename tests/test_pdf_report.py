@@ -1,5 +1,6 @@
 from pypdf import PdfReader
 
+from nettrace.models.findings import Finding
 from nettrace.models.report import AnalysisReport
 from nettrace.report.pdf_report import MAX_EVIDENCE_CHARS, format_evidence, render_pdf_report
 
@@ -32,3 +33,34 @@ def test_pdf_displays_analysis_warnings(tmp_path):
 
     assert "Analysis Warnings" in text
     assert "Timeline truncated at 10 entries." in text
+
+
+def test_pdf_escapes_capture_controlled_paragraph_text(tmp_path):
+    report = AnalysisReport(
+        pcap_path="captures/<unsafe>.pcap",
+        dns_events=[],
+        http_events=[],
+        tls_events=[],
+        ftp_events=[],
+        flows=[],
+        iocs=[],
+        findings=[
+            Finding(
+                title="Suspicious <script> activity",
+                description="Observed <bad> marker in request.",
+                category="test",
+                evidence={"request": "<script>alert(1)</script>"},
+                severity="high",
+                score=80,
+            )
+        ],
+        timeline=[],
+        warnings=["Warning includes <unsafe> text"],
+    )
+    output = render_pdf_report(report, tmp_path / "unsafe.pdf")
+
+    text = "\n".join(page.extract_text() or "" for page in PdfReader(str(output)).pages)
+
+    assert "captures/<unsafe>.pcap" in text
+    assert "Suspicious <script> activity" in text
+    assert "Warning includes <unsafe> text" in text

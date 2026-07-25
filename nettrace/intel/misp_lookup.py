@@ -8,6 +8,34 @@ from nettrace.models.events import IOC
 from nettrace.models.findings import Finding
 
 
+SOURCE_QUERY_PRIORITY = {
+    "http_request": 0,
+    "http_host": 1,
+    "http_url_host": 1,
+    "http_connect_target": 1,
+    "tls_sni": 2,
+    "dns": 3,
+    "dns_answer_domain": 4,
+    "http_flow": 5,
+    "tls_flow": 6,
+    "dns_answer": 7,
+}
+
+KIND_QUERY_PRIORITY = {
+    "url": 0,
+    "domain": 1,
+    "ip": 2,
+}
+
+
+def _ioc_query_priority(ioc: IOC) -> tuple[int, int, int]:
+    source_priority = SOURCE_QUERY_PRIORITY.get(ioc.source, 50)
+    if ioc.confidence != "confirmed":
+        source_priority += 50
+    packet_number = ioc.packet_number or 10**12
+    return (source_priority, KIND_QUERY_PRIORITY.get(ioc.kind, 9), packet_number)
+
+
 class MispLookup:
     def __init__(
         self,
@@ -107,7 +135,10 @@ class MispLookup:
                     tags=["MISP_ERROR"],
                 )
             ]
-        selected_iocs = iocs[: self.max_iocs]
+        selected_iocs = [
+            ioc
+            for _, ioc in sorted(enumerate(iocs), key=lambda item: (_ioc_query_priority(item[1]), item[0]))
+        ][: self.max_iocs]
         if len(iocs) > self.max_iocs:
             findings.append(
                 Finding(

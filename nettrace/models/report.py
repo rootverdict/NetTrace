@@ -20,6 +20,7 @@ class AnalysisReport:
     timeline: list[dict[str, Any]]
     packet_count: int = 0
     warnings: list[str] = field(default_factory=list)
+    observed_artifacts: list[IOC] = field(default_factory=list)
 
     def summary(self) -> dict[str, int]:
         return {
@@ -32,6 +33,7 @@ class AnalysisReport:
             "iocs": len(self.iocs),
             "iocs_confirmed": sum(1 for ioc in self.iocs if ioc.confidence == "confirmed"),
             "iocs_observed": sum(1 for ioc in self.iocs if ioc.confidence == "observed"),
+            "observed_artifacts": len(self.observed_artifacts),
             "findings": len(self.findings),
             "critical": sum(1 for finding in self.findings if finding.severity == "critical"),
             "high": sum(1 for finding in self.findings if finding.severity == "high"),
@@ -49,6 +51,7 @@ class AnalysisReport:
             "ftp_events": [event.to_dict() for event in self.ftp_events],
             "flows": [flow.to_dict() for flow in self.flows],
             "iocs": [ioc.to_dict() for ioc in self.iocs],
+            "observed_artifacts": [artifact.to_dict() for artifact in self.observed_artifacts],
             "findings": [finding.to_dict() for finding in self.findings],
             "timeline": self.timeline,
             "warnings": self.warnings,

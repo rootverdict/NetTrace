@@ -1,7 +1,7 @@
 import sys
 import types
 
-from nettrace.intel.misp_lookup import MispLookup
+from nettrace.intel.misp_lookup import MispLookup, _ioc_query_priority
 from nettrace.mapping.severity import score_findings
 from nettrace.models.events import IOC
 
@@ -148,6 +148,35 @@ def test_misp_batches_queries_applies_timeout_and_caps_iocs(monkeypatch):
     ]
     assert sum(finding.category == "threat_intel_match" for finding in findings) == 3
     assert any(finding.title == "MISP lookup truncated" for finding in findings)
+
+
+def test_misp_truncation_prioritizes_protocol_iocs_over_flow_ips(monkeypatch):
+    calls = []
+    install_fake_pymisp(monkeypatch, {"Attribute": []}, calls)
+    lookup = MispLookup(
+        enabled=True,
+        url="https://misp.example",
+        api_key="token",
+        max_iocs=2,
+        batch_size=10,
+    )
+    iocs = [
+        IOC("ip", "45.33.32.156", "flow:tcp:4444", confidence="observed"),
+        IOC("domain", "tls.example", "tls_sni", confidence="confirmed"),
+        IOC("url", "http://bad.example/a.exe", "http_request", confidence="confirmed"),
+        IOC("domain", "dns.example", "dns", confidence="confirmed"),
+    ]
+
+    lookup.match_iocs(iocs)
+
+    assert ("search", ["http://bad.example/a.exe", "tls.example"]) in calls
+
+
+def test_ioc_query_priority_demotes_observed_flow_artifacts():
+    confirmed = IOC("domain", "later.example", "dns", packet_number=99, confidence="confirmed")
+    observed = IOC("ip", "45.33.32.156", "flow:tcp:4444", packet_number=1, confidence="observed")
+
+    assert _ioc_query_priority(confirmed) < _ioc_query_priority(observed)
 
 
 def test_disabled_misp_skips_lookup():

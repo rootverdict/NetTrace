@@ -36,6 +36,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "protocols": {
         "http_ports": [80, 8000, 8080, 8888],
+        "tcp_overlap_policy": "reject-conflicting-overlap",
     },
     "limits": {
         "max_dns_events": 100_000,
@@ -50,6 +51,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "max_tcp_stream_buffer_bytes": 1_048_576,
         "max_tcp_pending_segments": 256,
         "max_tcp_total_buffer_bytes": 67_108_864,
+        "max_tcp_stream_idle_seconds": 300,
+        "max_fragment_age_seconds": 60,
     },
 }
 
@@ -154,6 +157,12 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ConfigError("protocols.http_ports must be a non-empty list of ports.")
     if any(isinstance(port, bool) or not isinstance(port, int) or not 1 <= port <= 65_535 for port in http_ports):
         raise ConfigError("protocols.http_ports entries must be integers between 1 and 65535.")
+    overlap_policy = protocols.get("tcp_overlap_policy")
+    if overlap_policy not in {"first-seen-wins", "last-seen-wins", "reject-conflicting-overlap"}:
+        raise ConfigError(
+            "protocols.tcp_overlap_policy must be one of: first-seen-wins, "
+            "last-seen-wins, reject-conflicting-overlap."
+        )
 
     limits = _mapping(config.get("limits"), "limits")
     for key in DEFAULT_CONFIG["limits"]:

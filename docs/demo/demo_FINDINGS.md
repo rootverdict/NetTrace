@@ -25,21 +25,20 @@
 
 ## Analyst Finding
 
-NetTrace analyzed `samples\suspicious\demo_beacon_http.pcap` and identified `10.0.0.5` as the primary internal host. The capture contains 1 DNS events, 1 plaintext HTTP requests, 0 TLS SNI events, 0 FTP commands, and 3 flows. The strongest analyst signal is the combination of HTTP staging activity (`http://malware-test.example/payload.exe`) and high-volume or encrypted traffic involving `203.0.113.66:4444`. These behaviors are consistent with malware staging and command-and-control triage, while heuristic findings should be validated with packet context.
+NetTrace analyzed `samples\suspicious\demo_beacon_http.pcap` and identified `10.0.0.5` as the internal host with the highest observed external traffic volume (a triage heuristic, not confirmation of compromise). The capture contains 1 DNS events, 1 plaintext HTTP requests, 0 TLS SNI events, 0 FTP commands, and 3 flows. High-confidence findings warrant malware staging and command-and-control triage; heuristic findings should still be validated with packet context before conclusions are drawn.
 
 ## Finding Types
 
 - Local threat intel match: 2
 - Possible DGA domain: 1
-- Suspicious HTTP user agent: 1
-- Executable download over HTTP: 1
+- Command-line or automation HTTP client observed: 1
+- Possible executable/script download request: 1
 - Connection to suspicious non-standard port: 1
 
-## ATT&CK Techniques
+## Potential ATT&CK Technique Associations
 
 - `T1568.002 - Dynamic Resolution: Domain Generation Algorithms`
 - `T1071.001 - Application Layer Protocol: Web Protocols`
-- `T1571 - Non-Standard Port`
 - `T1071.004 - Application Layer Protocol: DNS`
 
 ## Notable URLs

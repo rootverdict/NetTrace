@@ -54,6 +54,11 @@ def test_load_config_rejects_invalid_threshold_and_port_types(tmp_path):
     with pytest.raises(ConfigError, match="http_ports"):
         load_config(bad_port)
 
+    bad_policy = tmp_path / "bad-policy.yaml"
+    bad_policy.write_text("protocols:\n  tcp_overlap_policy: maybe\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="tcp_overlap_policy"):
+        load_config(bad_policy)
+
 
 def test_load_config_errors_on_missing_explicit_path(tmp_path):
     # Bug #12: a user-specified -c path that doesn't exist must error, not

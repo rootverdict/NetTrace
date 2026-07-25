@@ -3,6 +3,7 @@ from __future__ import annotations
 import ipaddress
 from urllib.parse import urlsplit
 
+from nettrace.analysis.domain_utils import normalize_domain
 from nettrace.models.events import DNSEvent, Flow, HTTPEvent, IOC, TLSEvent
 
 KNOWN_GOOD_RESOLVERS = {"8.8.8.8", "8.8.4.4", "1.1.1.1", "1.0.0.1"}
@@ -25,9 +26,8 @@ SOURCE_PRIORITY = {
 }
 
 # Sources backed by a parsed protocol artifact (a DNS answer, an HTTP host header,
-# a TLS SNI, a request URL). Everything else -- principally raw flow endpoint IPs
-# with a "flow:<proto>:<port>" source -- is an *observed* network artifact, not a
-# confirmed indicator, and should not be counted or ranked the same way. See bug #11.
+# a TLS SNI, a request URL). Raw flow endpoint IPs are exported separately as
+# observed artifacts instead of being mixed into IOCs. See bug #11.
 CONFIRMED_SOURCES = {
     "dns",
     "dns_answer",
@@ -55,7 +55,12 @@ def _add(iocs: set[IOC], kind: str, value: str, source: str, packet_number: int 
         except ValueError:
             return
     else:
-        normalized = value.lower() if kind == "domain" else value
+        if kind == "domain":
+            normalized = normalize_domain(value)
+            if normalized is None:
+                return
+        else:
+            normalized = value
     iocs.add(
         IOC(
             kind=kind,
@@ -108,7 +113,7 @@ def _host_without_port(host: str) -> str:
 def _add_http_host(iocs: set[IOC], host: str, packet_number: int = 0, source: str = "http_host") -> None:
     if not host:
         return
-    normalized = _host_without_port(host).rstrip(".")
+    normalized = _host_without_port(host)
     try:
         ipaddress.ip_address(normalized)
     except ValueError:
@@ -175,7 +180,22 @@ def extract_iocs(
     for event in tls_events:
         _add(iocs, "domain", event.sni, "tls_sni", packet_number=event.packet_number)
         _add_ip(iocs, event.dst_ip, "tls_flow", packet_number=event.packet_number)
-    for flow in flows:
-        _add_ip(iocs, flow.src_ip, f"flow:{flow.protocol.lower()}:{flow.src_port}", packet_number=flow.first_packet_number)
-        _add_ip(iocs, flow.dst_ip, f"flow:{flow.protocol.lower()}:{flow.dst_port}", packet_number=flow.first_packet_number)
     return _dedupe_iocs(iocs)
+
+
+def extract_observed_artifacts(flows: list[Flow]) -> list[IOC]:
+    artifacts: set[IOC] = set()
+    for flow in flows:
+        _add_ip(
+            artifacts,
+            flow.src_ip,
+            f"flow:{flow.protocol.lower()}:{flow.src_port}",
+            packet_number=flow.first_packet_number,
+        )
+        _add_ip(
+            artifacts,
+            flow.dst_ip,
+            f"flow:{flow.protocol.lower()}:{flow.dst_port}",
+            packet_number=flow.first_packet_number,
+        )
+    return _dedupe_iocs(artifacts)

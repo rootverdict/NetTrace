@@ -9,7 +9,7 @@ from nettrace.analysis.beaconing import detect_beaconing
 from nettrace.analysis.dga_scorer import score_domains
 from nettrace.analysis.ftp_analyzer import analyze_ftp_events
 from nettrace.analysis.http_analyzer import analyze_http_events
-from nettrace.analysis.ioc_extractor import extract_iocs
+from nettrace.analysis.ioc_extractor import extract_iocs, extract_observed_artifacts
 from nettrace.analysis.port_analyzer import analyze_flows
 from nettrace.analysis.tls_analyzer import analyze_tls_events
 from nettrace.intel.local_ioc_lookup import LocalIntel
@@ -40,7 +40,7 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
     http_events = []
     tls_events = []
     ftp_events = []
-    http_event_keys: set[tuple[int, str, str, str, str]] = set()
+    http_event_keys: set[tuple[int, str, str, int, int, str, str, str, int]] = set()
     flow_state: dict[tuple, Flow] = {}
     warnings: set[str] = set()
     max_dns_events = _limit(config, "max_dns_events", 100_000)
@@ -57,13 +57,15 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
         "max_pending_segments": _limit(config, "max_tcp_pending_segments", 256),
         # Four protocol extractors share the configured process budget evenly.
         "max_total_buffer_bytes": max(1, total_tcp_buffer_bytes // 4),
+        "overlap_policy": config.get("protocols", {}).get("tcp_overlap_policy", "reject-conflicting-overlap"),
+        "max_idle_seconds": _limit(config, "max_tcp_stream_idle_seconds", 300),
     }
     http_ports = {int(port) for port in config.get("protocols", {}).get("http_ports", [80, 8000, 8080, 8888])}
     http_extractor = HTTPStreamExtractor(http_ports=http_ports, stream_options=stream_options)
     tls_extractor = TLSStreamExtractor(stream_options=stream_options)
     ftp_extractor = FTPStreamExtractor(stream_options=stream_options)
     dns_stream_extractor = DNSStreamExtractor(stream_options=stream_options)
-    fragment_reassembler = IPFragmentReassembler()
+    fragment_reassembler = IPFragmentReassembler(max_age_seconds=_limit(config, "max_fragment_age_seconds", 60))
     packet_count = 0
 
     for raw_packet_number, raw_packet in enumerate(iter_packets(pcap_path), start=1):
@@ -95,8 +97,13 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
                 http_event.packet_number,
                 http_event.src_ip,
                 http_event.dst_ip,
+                http_event.src_port,
+                http_event.dst_port,
+                http_event.host,
                 http_event.method,
                 http_event.uri,
+                http_event.user_agent,
+                http_event.stream_offset,
             )
             if event_key in http_event_keys:
                 continue
@@ -173,6 +180,7 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
     findings.extend(analyze_flows(flows, config["thresholds"]))
 
     iocs = extract_iocs(dns_events, http_events, tls_events, flows)
+    observed_artifacts = extract_observed_artifacts(flows)
     for key in ("known_bad_domains", "known_bad_ips", "suspicious_user_agents"):
         intel_path = config.get("intel", {}).get(key, "")
         if intel_path and not Path(intel_path).is_file():
@@ -224,6 +232,7 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
         ftp_events=ftp_events,
         flows=flows,
         iocs=iocs,
+        observed_artifacts=observed_artifacts,
         findings=findings,
         timeline=timeline,
         packet_count=packet_count,

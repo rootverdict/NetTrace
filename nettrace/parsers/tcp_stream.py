@@ -39,6 +39,7 @@ class TCPStreamState:
     pending: dict[int, _TCPSegment] = field(default_factory=dict)
     first_packet_number: int = 0
     first_timestamp: float = 0.0
+    last_timestamp: float = 0.0
     # True once consume() has run at least once. Before that, base_seq is just
     # the earliest segment received so far (out-of-order arrivals below it are
     # still legitimate and must be prefixed in). After that, base_seq is a
@@ -61,11 +62,17 @@ class TCPStreamBuffers:
         max_buffer_bytes: int = 1_048_576,
         max_pending_segments: int = 256,
         max_total_buffer_bytes: int = 67_108_864,
+        overlap_policy: str = "reject-conflicting-overlap",
+        max_idle_seconds: float = 300.0,
     ) -> None:
+        if overlap_policy not in {"first-seen-wins", "last-seen-wins", "reject-conflicting-overlap"}:
+            raise ValueError("Unsupported TCP overlap policy.")
         self.max_streams = max_streams
         self.max_buffer_bytes = max_buffer_bytes
         self.max_pending_segments = max_pending_segments
         self.max_total_buffer_bytes = max_total_buffer_bytes
+        self.overlap_policy = overlap_policy
+        self.max_idle_seconds = max(0.0, float(max_idle_seconds))
         self._streams: OrderedDict[tuple[str, str, int, int], TCPStreamState] = OrderedDict()
         self._total_buffered_bytes = 0
         self.discarded_streams = 0
@@ -103,8 +110,58 @@ class TCPStreamBuffers:
         if discarded and size:
             self.discarded_streams += 1
 
-    @staticmethod
-    def _merge_pending(state: TCPStreamState) -> bool:
+    def _expire_idle(self, current_timestamp: float) -> None:
+        if self.max_idle_seconds <= 0:
+            return
+        for key, state in list(self._streams.items()):
+            last_seen = state.last_timestamp or state.first_timestamp
+            if current_timestamp - last_seen > self.max_idle_seconds:
+                self._remove_stream(key, discarded=True)
+
+    def _merge_segment(self, state: TCPStreamState, sequence: int, segment: _TCPSegment) -> tuple[bool, bool]:
+        if state.base_seq is None or state.next_seq is None:
+            return False, False
+        payload = segment.payload
+        end = sequence + len(payload)
+        if end < state.base_seq or sequence > state.next_seq:
+            return False, False
+
+        conflict = False
+        overlap_start = max(sequence, state.base_seq)
+        overlap_end = min(end, state.next_seq)
+        if overlap_start < overlap_end:
+            payload_offset = overlap_start - sequence
+            buffer_offset = overlap_start - state.base_seq
+            overlap_length = overlap_end - overlap_start
+            accepted = bytes(state.buffer[buffer_offset : buffer_offset + overlap_length])
+            retransmitted = payload[payload_offset : payload_offset + overlap_length]
+            conflict = accepted != retransmitted
+
+        if conflict and self.overlap_policy == "reject-conflicting-overlap":
+            return True, True
+
+        if sequence < state.base_seq:
+            prefix_length = state.base_seq - sequence
+            state.buffer[:0] = payload[:prefix_length]
+            state.base_seq = sequence
+            state.first_packet_number = segment.packet_number
+            state.first_timestamp = segment.timestamp
+
+        if overlap_start < overlap_end and self.overlap_policy == "last-seen-wins":
+            buffer_offset = overlap_start - state.base_seq
+            payload_offset = overlap_start - sequence
+            overlap_length = overlap_end - overlap_start
+            state.buffer[buffer_offset : buffer_offset + overlap_length] = payload[
+                payload_offset : payload_offset + overlap_length
+            ]
+
+        if end > state.next_seq:
+            suffix_offset = max(0, state.next_seq - sequence)
+            state.buffer.extend(payload[suffix_offset:])
+            state.next_seq = end
+        return True, conflict
+
+    def _merge_pending(self, state: TCPStreamState) -> bool:
         """Merge ready pending segments into the buffer.
 
         Returns True if a byte-level conflict was found between overlapping
@@ -133,32 +190,10 @@ class TCPStreamBuffers:
                     break
                 if end < state.base_seq or sequence > state.next_seq:
                     continue
-                if end <= state.next_seq and sequence >= state.base_seq:
-                    # Fully inside the already-buffered range. Bug #3: compare
-                    # bytes before discarding instead of assuming they match.
-                    offset = sequence - state.base_seq
-                    existing = bytes(state.buffer[offset : offset + len(segment.payload)])
-                    if existing and existing != segment.payload:
-                        conflict = True
-                    del state.pending[sequence]
-                    changed = True
-                    break
-                if sequence < state.base_seq and end >= state.base_seq:
-                    prefix_length = state.base_seq - sequence
-                    state.buffer[:0] = segment.payload[:prefix_length]
-                    state.base_seq = sequence
-                    state.first_packet_number = segment.packet_number
-                    state.first_timestamp = segment.timestamp
-                if sequence <= state.next_seq and end > state.next_seq:
-                    overlap = state.next_seq - sequence
-                    if overlap > 0 and overlap <= len(state.buffer):
-                        existing_tail = bytes(state.buffer[-overlap:])
-                        if existing_tail != segment.payload[:overlap]:
-                            conflict = True
-                    state.buffer.extend(segment.payload[max(overlap, 0) :])
-                    state.next_seq = end
+                merged, segment_conflict = self._merge_segment(state, sequence, segment)
+                conflict = conflict or segment_conflict
                 del state.pending[sequence]
-                changed = True
+                changed = merged
                 break
         return conflict
 
@@ -166,6 +201,8 @@ class TCPStreamBuffers:
         endpoints = ip_endpoints(packet)
         if endpoints is None or not packet.haslayer(TCP):
             return None
+        timestamp = float(getattr(packet, "time", 0.0))
+        self._expire_idle(timestamp)
         src_ip, dst_ip = endpoints
         tcp = packet[TCP]
         key = (src_ip, dst_ip, int(tcp.sport), int(tcp.dport))
@@ -200,19 +237,21 @@ class TCPStreamBuffers:
                 src_port=int(tcp.sport),
                 dst_port=int(tcp.dport),
                 first_packet_number=packet_number,
-                first_timestamp=float(packet.time),
+                first_timestamp=timestamp,
+                last_timestamp=timestamp,
             )
             self._streams[key] = state
         else:
             self._streams.move_to_end(key)
+            state.last_timestamp = timestamp
 
         previous_size = self._state_size(state)
 
         if not state.buffer and not state.pending:
             state.first_packet_number = packet_number
-            state.first_timestamp = float(packet.time)
+            state.first_timestamp = timestamp
 
-        segment = _TCPSegment(payload, packet_number, float(packet.time))
+        segment = _TCPSegment(payload, packet_number, timestamp)
         if state.next_seq is None or state.base_seq is None:
             state.buffer.extend(payload)
             state.base_seq = sequence

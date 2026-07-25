@@ -25,12 +25,8 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 - IOCs: 40869
 - Findings: 86
 
-## ATT&CK Techniques Observed
+## Potential ATT&CK Technique Associations
 
-- `T1020 - Automated Exfiltration`
-- `T1048.003 - Exfiltration Over Alternative Protocol: Exfiltration Over Unencrypted Non-C2 Protocol`
-- `T1090 - Proxy`
-- `T1571 - Non-Standard Port`
 - `T1573 - Encrypted Channel`
 
 ## Emotet Epoch 5
@@ -154,9 +150,9 @@ NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples
 - File upload over FTP: 4
 - Cleartext FTP credentials: 2
 
-### ATT&CK Techniques
+### Potential ATT&CK Technique Associations
 
-- `T1048.003 - Exfiltration Over Alternative Protocol: Exfiltration Over Unencrypted Non-C2 Protocol`
+- None observed
 
 ### Notable URLs
 

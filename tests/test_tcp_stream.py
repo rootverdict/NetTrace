@@ -62,6 +62,8 @@ def test_conflicting_overlap_is_detected_not_silently_resolved():
     # Retransmission of the same range with DIFFERENT bytes -- a real conflict.
     buffers.feed(_segment(100, b"AAAAXXXX", 2, timestamp=1.1), 2)
     assert buffers.conflicting_overlaps == 1
+    state = next(iter(buffers._streams.values()))
+    assert bytes(state.buffer) == b"AAAABBBB"
 
 
 def test_identical_overlap_is_not_flagged_as_conflict():
@@ -70,6 +72,72 @@ def test_identical_overlap_is_not_flagged_as_conflict():
     buffers.feed(_segment(100, b"AAAABBBB", 2, timestamp=1.1), 2)
 
     assert buffers.conflicting_overlaps == 0
+
+
+def test_partial_identical_overlap_extends_buffer_without_conflict():
+    buffers = TCPStreamBuffers()
+    state = buffers.feed(_segment(100, b"AAAABBBB", 1), 1)
+    state = buffers.feed(_segment(104, b"BBBBCCCC", 2, timestamp=1.1), 2)
+
+    assert buffers.conflicting_overlaps == 0
+    assert bytes(state.buffer) == b"AAAABBBBCCCC"
+
+
+def test_partial_conflicting_overlap_is_rejected_by_default():
+    buffers = TCPStreamBuffers()
+    state = buffers.feed(_segment(100, b"AAAABBBB", 1), 1)
+    state = buffers.feed(_segment(104, b"XXXXCCCC", 2, timestamp=1.1), 2)
+
+    assert buffers.conflicting_overlaps == 1
+    assert bytes(state.buffer) == b"AAAABBBB"
+
+
+def test_conflicting_prefix_overlap_is_detected():
+    buffers = TCPStreamBuffers()
+    state = buffers.feed(_segment(104, b"BBBBCCCC", 2, timestamp=1.1), 2)
+    state = buffers.feed(_segment(100, b"AAAAXXXX", 1), 1)
+
+    assert buffers.conflicting_overlaps == 1
+    assert bytes(state.buffer) == b"BBBBCCCC"
+
+
+def test_last_seen_overlap_policy_replaces_conflicting_bytes():
+    buffers = TCPStreamBuffers(overlap_policy="last-seen-wins")
+    state = buffers.feed(_segment(100, b"AAAABBBB", 1), 1)
+    state = buffers.feed(_segment(104, b"XXXXCCCC", 2, timestamp=1.1), 2)
+
+    assert buffers.conflicting_overlaps == 1
+    assert bytes(state.buffer) == b"AAAAXXXXCCCC"
+
+
+def test_idle_stream_is_expired_by_timestamp():
+    buffers = TCPStreamBuffers(max_idle_seconds=5)
+    buffers.feed(_segment(100, b"incomplete", 1, timestamp=1.0), 1)
+    packet = (
+        IP(src="10.0.0.6", dst="203.0.113.10")
+        / TCP(sport=50001, dport=80, seq=100, flags="A")
+        / Raw(load=b"other")
+    )
+    packet.time = 7.1
+
+    buffers.feed(packet, 2)
+
+    assert buffers.discarded_streams == 1
+    assert buffers.incomplete_streams == 1
+
+
+def test_idle_stream_is_expired_by_timestamp():
+    buffers = TCPStreamBuffers(max_idle_seconds=5)
+    buffers.feed(_segment(100, b"incomplete", 1, timestamp=1.0), 1)
+    buffers.feed(
+        IP(src="10.0.0.6", dst="203.0.113.10")
+        / TCP(sport=50001, dport=80, seq=100, flags="A")
+        / Raw(load=b"other"),
+        2,
+    )
+
+    assert buffers.discarded_streams == 1
+    assert buffers.incomplete_streams == 1
 
 
 def test_incomplete_stream_visible_at_eof():

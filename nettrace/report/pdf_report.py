@@ -22,13 +22,17 @@ def format_evidence(evidence: dict) -> str:
     return text
 
 
+def pdf_text(value: object) -> str:
+    return escape(str(value))
+
+
 def render_pdf_report(report: AnalysisReport, output_path: Path) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     doc = SimpleDocTemplate(str(output_path), pagesize=A4)
     styles = getSampleStyleSheet()
     elements = [
         Paragraph("NetTrace Malware Traffic Analysis Report", styles["Title"]),
-        Paragraph(f"PCAP: {report.pcap_path}", styles["Normal"]),
+        Paragraph(f"PCAP: {pdf_text(report.pcap_path)}", styles["Normal"]),
         Spacer(1, 12),
     ]
     summary_rows = [["Metric", "Count"]] + [
@@ -50,17 +54,20 @@ def render_pdf_report(report: AnalysisReport, output_path: Path) -> Path:
     if report.warnings:
         elements.append(Paragraph("Analysis Warnings", styles["Heading2"]))
         for warning in report.warnings:
-            elements.append(Paragraph(f"&bull; {escape(warning)}", styles["Normal"]))
+            elements.append(Paragraph(f"&bull; {pdf_text(warning)}", styles["Normal"]))
         elements.append(Spacer(1, 12))
     elements.append(Paragraph("Findings", styles["Heading2"]))
     for finding in sorted(report.findings, key=lambda item: item.score, reverse=True):
-        elements.append(Paragraph(f"{finding.severity.upper()} - {finding.title}", styles["Heading3"]))
-        elements.append(Paragraph(finding.description, styles["Normal"]))
+        elements.append(Paragraph(f"{pdf_text(finding.severity.upper())} - {pdf_text(finding.title)}", styles["Heading3"]))
+        elements.append(Paragraph(pdf_text(finding.description), styles["Normal"]))
         if finding.attack_id:
             elements.append(
-                Paragraph(f"MITRE ATT&CK: {finding.attack_id} {finding.attack_name}", styles["Normal"])
+                Paragraph(
+                    f"MITRE ATT&CK: {pdf_text(finding.attack_id)} {pdf_text(finding.attack_name)}",
+                    styles["Normal"],
+                )
             )
-        evidence = escape(format_evidence(finding.evidence))
+        evidence = pdf_text(format_evidence(finding.evidence))
         elements.append(Paragraph(f"Evidence: {evidence}", styles["Code"]))
         elements.append(Spacer(1, 8))
     doc.build(elements)
