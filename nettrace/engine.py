@@ -9,7 +9,7 @@ from nettrace.analysis.beaconing import detect_beaconing
 from nettrace.analysis.dga_scorer import score_domains
 from nettrace.analysis.ftp_analyzer import analyze_ftp_events
 from nettrace.analysis.http_analyzer import analyze_http_events
-from nettrace.analysis.ioc_extractor import extract_iocs, extract_observed_artifacts
+from nettrace.analysis.ioc_extractor import extract_iocs, extract_observed_artifacts, merge_iocs_for_intel
 from nettrace.analysis.port_analyzer import analyze_flows
 from nettrace.analysis.tls_analyzer import analyze_tls_events
 from nettrace.intel.local_ioc_lookup import LocalIntel
@@ -181,15 +181,18 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
 
     iocs = extract_iocs(dns_events, http_events, tls_events, flows)
     observed_artifacts = extract_observed_artifacts(flows)
+    # Match intel against confirmed IOCs *and* raw flow-endpoint artifacts, so a
+    # known-bad IP seen only as a plain TCP/UDP flow endpoint is still flagged.
+    intel_iocs = merge_iocs_for_intel(iocs, observed_artifacts)
     for key in ("known_bad_domains", "known_bad_ips", "suspicious_user_agents"):
         intel_path = config.get("intel", {}).get(key, "")
         if intel_path and not Path(intel_path).is_file():
             warnings.add(f"Local intelligence file not found for {key}: {intel_path}")
     local_intel = LocalIntel.from_config(config["intel"])
-    findings.extend(local_intel.match_iocs(iocs))
+    findings.extend(local_intel.match_iocs(intel_iocs))
 
     misp = MispLookup.from_config(config.get("misp", {}))
-    findings.extend(misp.match_iocs(iocs))
+    findings.extend(misp.match_iocs(intel_iocs))
 
     tag_findings(findings)
     score_findings(findings)

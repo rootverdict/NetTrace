@@ -45,6 +45,12 @@ class TCPStreamState:
     # still legitimate and must be prefixed in). After that, base_seq is a
     # genuine "already parsed and removed" low-water mark -- see bug #8.
     has_consumed: bool = False
+    # Set when a FIN/RST segment carrying payload has been buffered. The stream
+    # is returned to the caller one last time so the protocol extractor can
+    # drain the now-complete message; the caller then calls close() to remove
+    # it. Previously feed() removed the stream and returned None here, silently
+    # dropping the final message of every FIN/RST-terminated connection.
+    closing: bool = False
 
 
 def ip_endpoints(packet) -> tuple[str, str] | None:
@@ -278,8 +284,11 @@ class TCPStreamBuffers:
             return None
 
         if has_fin_or_rst:
-            self._remove_stream(key, discarded=True)
-            return None
+            # Buffer this final segment (done above) and hand the stream back so
+            # the extractor can parse the completed message, then close it via
+            # close(). Do NOT remove-and-return-None here -- that discards the
+            # just-buffered final message unparsed.
+            state.closing = True
 
         return state
 
@@ -292,3 +301,13 @@ class TCPStreamBuffers:
         state.first_packet_number = next_packet_number
         state.first_timestamp = next_timestamp
         self._total_buffered_bytes += self._state_size(state) - previous_size
+
+    def close(self, state: TCPStreamState) -> None:
+        """Remove a stream a FIN/RST closed, after the caller has drained it.
+
+        Any bytes still buffered are a truncated final message (data after the
+        last complete message, cut off by the FIN/RST) and are counted as
+        discarded; a fully drained stream removes cleanly with no discard.
+        """
+        key = (state.src_ip, state.dst_ip, state.src_port, state.dst_port)
+        self._remove_stream(key, discarded=True)

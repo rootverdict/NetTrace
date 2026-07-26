@@ -158,6 +158,8 @@ class HTTPStreamExtractor:
             if next_start < 0:
                 break
             self.streams.consume(state, next_start, packet_number, float(packet.time))
+        if state.closing:
+            self.streams.close(state)
         return events
 
 

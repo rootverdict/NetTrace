@@ -160,39 +160,49 @@ def test_fully_consumed_stream_is_not_counted_as_incomplete():
     assert buffers.incomplete_buffered_bytes == 0
 
 
-def test_fin_packet_with_payload_buffers_and_closes():
-    # Bug #1: FIN packets with payload should buffer the payload and then close
-    # the stream, not ignore the FIN flag just because there's payload.
+def test_fin_packet_with_payload_is_buffered_and_returned_for_parsing():
+    # Bug #1: FIN packets with payload must buffer the payload AND hand the
+    # stream back so the extractor can parse the now-complete message. The old
+    # code removed the stream and returned None, dropping the final message.
     buffers = TCPStreamBuffers()
     state = buffers.feed(_segment(100, b"GET / HTTP/1.1\r\n", 1), 1)
     assert state is not None
 
-    # FIN packet with payload (e.g., final response before closing)
-    packet = IP(src="10.0.0.5", dst="203.0.113.10") / TCP(sport=50000, dport=80, seq=116, flags="FA") / Raw(load=b"HTTP/1.1 200 OK\r\n")
+    # FIN packet with payload (e.g., final segment completing the request).
+    packet = IP(src="10.0.0.5", dst="203.0.113.10") / TCP(sport=50000, dport=80, seq=116, flags="FA") / Raw(load=b"Host: x\r\n\r\n")
     packet.time = 1.1
     state = buffers.feed(packet, 2)
 
-    # Payload should be buffered and stream should be closed
-    assert state is None  # Stream is removed, so None is returned
-    assert buffers.incomplete_streams == 0  # No incomplete streams left
-    assert buffers.discarded_streams == 1  # Stream was properly closed
-    assert (
-        b"GET / HTTP/1.1\r\nHTTP/1.1 200 OK\r\n" in [bytes(s.buffer) for s in buffers._streams.values()]
-    ) or len(buffers._streams) == 0
+    # The completed, reassembled bytes are returned -- not discarded.
+    assert state is not None
+    assert state.closing is True
+    assert bytes(state.buffer) == b"GET / HTTP/1.1\r\nHost: x\r\n\r\n"
+
+    # After the caller drains and closes it, the stream is gone and clean.
+    buffers.consume(state, len(state.buffer), next_packet_number=2, next_timestamp=1.1)
+    buffers.close(state)
+    assert len(buffers._streams) == 0
+    assert buffers.incomplete_streams == 0
 
 
-def test_rst_packet_with_payload_buffers_and_closes():
-    # RST packets with payload should also buffer the payload before closing.
+def test_rst_packet_with_payload_is_buffered_and_returned_for_parsing():
+    # RST packets with payload must also buffer the payload and return it.
     buffers = TCPStreamBuffers()
-    state = buffers.feed(_segment(100, b"incomplete data", 1), 1)
+    state = buffers.feed(_segment(100, b"partial ", 1), 1)
     assert state is not None
 
-    # RST packet with payload
-    packet = IP(src="10.0.0.5", dst="203.0.113.10") / TCP(sport=50000, dport=80, seq=115, flags="AR") / Raw(load=b"error message")
+    # RST packet with payload.
+    packet = IP(src="10.0.0.5", dst="203.0.113.10") / TCP(sport=50000, dport=80, seq=108, flags="AR") / Raw(load=b"tail")
     packet.time = 1.1
     state = buffers.feed(packet, 2)
 
-    # Stream should be closed after buffering the payload
-    assert state is None  # Stream is removed
-    assert buffers.incomplete_streams == 0  # No incomplete streams
-    assert buffers.discarded_streams == 1  # Stream was closed
+    assert state is not None
+    assert state.closing is True
+    assert bytes(state.buffer) == b"partial tail"
+
+    # Closing an undrained stream counts the leftover as a discarded (truncated)
+    # tail, and leaves nothing incomplete behind.
+    buffers.close(state)
+    assert len(buffers._streams) == 0
+    assert buffers.incomplete_streams == 0
+    assert buffers.discarded_streams == 1

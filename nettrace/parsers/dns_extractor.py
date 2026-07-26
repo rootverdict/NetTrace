@@ -142,6 +142,8 @@ class DNSStreamExtractor:
                 parsed_events = []
             self.streams.consume(state, frame_length, packet_number, float(packet.time))
             events.extend(parsed_events)
+        if state.closing:
+            self.streams.close(state)
         return events
 
 

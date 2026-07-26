@@ -130,6 +130,8 @@ class TLSStreamExtractor:
                     )
                 )
             self.streams.consume(state, total_length, packet_number, float(packet.time))
+        if state.closing:
+            self.streams.close(state)
         return events
 
 

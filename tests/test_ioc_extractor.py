@@ -1,4 +1,9 @@
-from nettrace.analysis.ioc_extractor import extract_iocs, extract_observed_artifacts
+from nettrace.analysis.ioc_extractor import (
+    extract_iocs,
+    extract_observed_artifacts,
+    merge_iocs_for_intel,
+)
+from nettrace.intel.local_ioc_lookup import LocalIntel
 from nettrace.models.events import DNSEvent, Flow, HTTPEvent, TLSEvent
 
 
@@ -118,6 +123,36 @@ def test_flow_sourced_ips_are_observed_artifacts_not_iocs():
 
     assert len(artifacts) == 1
     assert artifacts[0].confidence == "observed"
+
+
+def test_known_bad_ip_seen_only_as_raw_flow_endpoint_is_matched_by_intel():
+    # Bug #2: a known-bad IP contacted over a plain TCP flow (no HTTP/TLS/DNS
+    # artifact) lands only in observed_artifacts. Intel matching must still see
+    # it via merge_iocs_for_intel, or the high-severity hit is missed.
+    flows = [Flow("10.0.0.5", "150.60.21.231", 50000, 4444, "TCP", 1.0, 2.0, first_packet_number=9)]
+    iocs = extract_iocs([], [], [], flows)
+    artifacts = extract_observed_artifacts(flows)
+    assert not any(ioc.value == "150.60.21.231" for ioc in iocs)  # not in reported IOC list
+
+    intel_iocs = merge_iocs_for_intel(iocs, artifacts)
+    findings = LocalIntel(domains=set(), ips={"150.60.21.231"}).match_iocs(intel_iocs)
+
+    assert [f.evidence["ioc_value"] for f in findings] == ["150.60.21.231"]
+
+
+def test_merge_for_intel_prefers_confirmed_source_and_dedupes():
+    confirmed = extract_iocs(
+        [], [HTTPEvent(1.0, "10.0.0.5", "150.60.21.231", "GET", "150.60.21.231", "/a")], [], []
+    )
+    flows = [Flow("10.0.0.5", "150.60.21.231", 50000, 80, "TCP", 1.0, 2.0)]
+    artifacts = extract_observed_artifacts(flows)
+
+    merged = merge_iocs_for_intel(confirmed, artifacts)
+    matching = [ioc for ioc in merged if ioc.value == "150.60.21.231"]
+
+    assert len(matching) == 1  # deduped by (kind, value)
+    assert not matching[0].source.startswith("flow:")  # confirmed source wins over flow:*
+    assert matching[0].confidence == "confirmed"
 
 
 def test_absolute_form_http_url_is_not_prefixed_twice():

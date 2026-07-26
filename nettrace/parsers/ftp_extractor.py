@@ -32,10 +32,18 @@ class FTPStreamExtractor:
             command, _, argument = raw_line.partition(" ")
             command = command.upper()
             if command not in FTP_COMMANDS:
+                # Resync to the next known command. A command may be followed by
+                # a space (has an argument) or by CRLF directly (argument-less
+                # commands such as PWD/PASV) -- match both so the resync can
+                # land on a bare "PWD\r\n".
                 possible_starts = [
-                    state.buffer.find(candidate.encode() + b" ", 1) for candidate in FTP_COMMANDS
+                    position
+                    for candidate in FTP_COMMANDS
+                    for suffix in (b" ", b"\r\n")
+                    for position in (state.buffer.find(candidate.encode() + suffix, 1),)
+                    if position >= 0
                 ]
-                next_start = min((position for position in possible_starts if position >= 0), default=-1)
+                next_start = min(possible_starts, default=-1)
                 if next_start < 0:
                     break
                 self.streams.consume(state, next_start, packet_number, float(packet.time))
@@ -55,4 +63,6 @@ class FTPStreamExtractor:
                     packet_number=event_packet_number,
                 )
             )
+        if state.closing:
+            self.streams.close(state)
         return events

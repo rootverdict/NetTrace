@@ -183,6 +183,18 @@ def extract_iocs(
     return _dedupe_iocs(iocs)
 
 
+def merge_iocs_for_intel(iocs: list[IOC], observed_artifacts: list[IOC]) -> list[IOC]:
+    """IOC list for threat-intel matching only (not for the report's IOC list).
+
+    Observed flow-endpoint IPs are deliberately kept out of the reported IOC
+    list (see bug #11), but a known-bad IP contacted over a raw TCP/UDP flow
+    with no HTTP/TLS/DNS artifact would otherwise never be checked against the
+    local/MISP intel at all. Merge both, deduped by (kind, value) with the more
+    specific protocol-confirmed source winning, purely for the lookup.
+    """
+    return _dedupe_iocs(set(iocs) | set(observed_artifacts))
+
+
 def extract_observed_artifacts(flows: list[Flow]) -> list[IOC]:
     artifacts: set[IOC] = set()
     for flow in flows:
