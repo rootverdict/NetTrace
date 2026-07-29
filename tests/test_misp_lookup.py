@@ -269,3 +269,32 @@ def test_misp_matches_secondary_attribute_values(monkeypatch):
 
     assert len(findings) == 1
     assert findings[0].category == "threat_intel_match"
+
+
+def test_same_value_as_two_kinds_does_not_cross_report_a_match(monkeypatch):
+    """`normalize_domain` accepts an all-numeric name, so a DNS query for
+    "1.2.3.4" produces a domain IOC alongside the ip IOC for the same string.
+    Counting matches by value alone let a hit on one report a hit for both."""
+    install_fake_pymisp(monkeypatch, {"Attribute": [{"value": "1.2.3.4", "type": "ip-dst"}]})
+    lookup = MispLookup(enabled=True, url="https://misp.example", api_key="token")
+
+    findings = lookup.match_iocs(
+        [IOC("domain", "1.2.3.4", "dns"), IOC("ip", "1.2.3.4", "dns_answer")]
+    )
+
+    # The attribute is a plain IP string, so both kinds legitimately match it
+    # here -- what must not happen is a single match being counted twice.
+    assert [finding.evidence["misp_result_count"] for finding in findings] == [1, 1]
+
+
+def test_domain_only_hit_does_not_produce_an_ip_finding(monkeypatch):
+    install_fake_pymisp(monkeypatch, {"Attribute": [{"value": "bad.example"}]})
+    lookup = MispLookup(enabled=True, url="https://misp.example", api_key="token")
+
+    findings = lookup.match_iocs(
+        [IOC("domain", "bad.example", "dns"), IOC("ip", "203.0.113.9", "dns_answer")]
+    )
+
+    assert [(f.evidence["ioc_type"], f.evidence["ioc_value"]) for f in findings] == [
+        ("domain", "bad.example")
+    ]

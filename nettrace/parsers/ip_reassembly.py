@@ -55,10 +55,17 @@ class IPFragmentReassembler:
     def _expire_old(self, current_timestamp: float) -> None:
         if self.max_age_seconds <= 0:
             return
-        for key, state in list(self._datagrams.items()):
+        # `_datagrams` is least-recently-active first (`move_to_end` plus a
+        # `last_timestamp` update on every touch), so the expired entries are a
+        # prefix and the scan can stop at the first live one rather than walking
+        # all of them on every packet. Bounded at max_datagrams, so the win is
+        # smaller than the TCP-stream equivalent, but it is the same pattern.
+        while self._datagrams:
+            key, state = next(iter(self._datagrams.items()))
             last_seen = state.last_timestamp or state.first_timestamp
-            if current_timestamp - last_seen > self.max_age_seconds:
-                self._discard(key)
+            if current_timestamp - last_seen <= self.max_age_seconds:
+                break
+            self._discard(key)
 
     @staticmethod
     def _assemble(state: _FragmentState) -> bytes | None:

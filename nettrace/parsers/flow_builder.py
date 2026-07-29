@@ -4,10 +4,9 @@ import ipaddress
 
 from scapy.layers.inet import IP, TCP, UDP
 from scapy.layers.inet6 import IPv6
-from scapy.packet import Raw
 
 from nettrace.models.events import Flow
-from nettrace.parsers.tcp_stream import TCP_SEQUENCE_MODULUS, unwrap_tcp_sequence
+from nettrace.parsers.tcp_stream import TCP_SEQUENCE_MODULUS, tcp_payload, unwrap_tcp_sequence
 
 EPHEMERAL_PORT_MIN = 49152
 SERVER_LIKE_PORTS = {
@@ -132,6 +131,16 @@ def update_flow(
     max_flows: int | None = None,
     sample_limit: int = DEFAULT_FLOW_SAMPLE_LIMIT,
 ) -> bool:
+    """Fold one packet into the conversation-keyed ``flows`` map in place.
+
+    Endpoints are canonicalized by ``flow_key`` so both directions share a
+    record, and ``_direction_from_packet`` assigns an initiator/responder score
+    that a later, stronger signal (e.g. a SYN) can upgrade. A reused TCP tuple
+    with a fresh initial sequence is archived under a distinct key so successive
+    connections are not merged. Returns ``False`` only when a new flow would
+    exceed ``max_flows`` (the packet is dropped from flow accounting); ``True``
+    otherwise, including for packets with no IP layer to key on.
+    """
     endpoints = _ip_endpoints(packet)
     if endpoints is None:
         return True
@@ -163,7 +172,7 @@ def update_flow(
                 if existing is not None and existing.tcp_seq_next is not None
                 else raw_segment_start
             )
-            segment_end = segment_start + (len(bytes(packet[TCP].payload)) if packet[TCP].payload else 0)
+            segment_end = segment_start + len(tcp_payload(packet, packet[TCP]))
             belongs_to_existing = (
                 existing is not None
                 and existing.tcp_seq_floor is not None
@@ -204,7 +213,7 @@ def update_flow(
             if flow.tcp_seq_next is not None
             else raw_sequence_start
         )
-        sequence_end = sequence_start + len(bytes(packet[TCP].payload))
+        sequence_end = sequence_start + len(tcp_payload(packet, packet[TCP]))
         flow.tcp_seq_floor = sequence_start if flow.tcp_seq_floor is None else min(flow.tcp_seq_floor, sequence_start)
         flow.tcp_seq_next = sequence_end if flow.tcp_seq_next is None else max(flow.tcp_seq_next, sequence_end)
     if direction[4] > flow.direction_score:
@@ -233,7 +242,9 @@ def update_flow(
         if protocol == "TCP":
             flags = int(packet[TCP].flags)
             syn_start = bool(flags & 0x02) and not bool(flags & 0x10)
-            has_payload = packet.haslayer(Raw) and bool(bytes(packet[Raw].load))
+            # Not haslayer(Raw): Padding subclasses Raw, so a bare ACK padded to
+            # the 60-byte Ethernet minimum would count as a beacon event.
+            has_payload = bool(tcp_payload(packet, packet[TCP]))
             sequence = int(packet[TCP].seq)
             if (syn_start or has_payload) and sequence != flow.last_beacon_tcp_seq:
                 flow.beacon_timestamps.append(timestamp)

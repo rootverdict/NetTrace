@@ -47,8 +47,8 @@ def build_aggregate_markdown(reports: list[tuple[dict[str, Any], dict[str, Any]]
         "",
         "## Dataset",
         "",
-        "NetTrace was run against 5 real public Malware-Traffic-Analysis.net PCAP samples. "
-        "The workflow analyzes packet captures only and does not execute malware.",
+        f"NetTrace was run against {len(reports)} real public Malware-Traffic-Analysis.net PCAP "
+        "samples. The workflow analyzes packet captures only and does not execute malware.",
         "",
         "## Scan Summary",
         "",
@@ -151,7 +151,7 @@ def build_aggregate_markdown(reports: list[tuple[dict[str, Any], dict[str, Any]]
         [
             "## Notes",
             "",
-            "- This write-up was generated from NetTrace JSON output across all five real PCAP scans.",
+            "- This write-up was generated from NetTrace JSON output across every real PCAP scan in the corpus.",
             "- Treat heuristic detections as triage leads and validate them against packet context.",
             "- Output reports for each scan are available under `output/real/` after running the analysis commands.",
             "",

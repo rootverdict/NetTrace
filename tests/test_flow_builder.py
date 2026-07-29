@@ -1,7 +1,8 @@
-from scapy.all import IP, Raw, TCP
+from scapy.all import ICMP, IP, UDP, Raw, TCP
+from scapy.layers.inet6 import IPv6
 
 from nettrace.analysis.port_analyzer import analyze_flows
-from nettrace.parsers.flow_builder import build_flows, flow_key
+from nettrace.parsers.flow_builder import build_flows, flow_key, update_flow
 
 
 def test_flow_key_orders_ip_addresses_numerically_not_lexicographically():
@@ -126,3 +127,97 @@ def test_reused_tcp_tuple_creates_separate_connection_flows():
 
     assert len(flows) == 2
     assert [flow.packet_count for flow in flows] == [2, 2]
+
+
+def test_non_ip_packet_is_recorded_without_creating_a_flow():
+    # A packet with no IPv4/IPv6 layer has no endpoints to key on; update_flow
+    # reports success (nothing to bound) and adds no flow.
+    flows = {}
+    assert update_flow(flows, TCP(sport=1, dport=2), packet_number=1) is True
+    assert flows == {}
+
+
+def test_syn_ack_orients_flow_toward_the_connection_initiator():
+    # The capture starts on the server's SYN/ACK, so the initiator is the peer
+    # the SYN/ACK is sent to.
+    syn_ack = IP(src="203.0.113.10", dst="10.0.0.5") / TCP(sport=443, dport=50000, flags="SA")
+    syn_ack.time = 1.0
+
+    flows = build_flows([syn_ack])
+
+    assert flows[0].src_ip == "10.0.0.5"
+    assert flows[0].dst_ip == "203.0.113.10"
+    assert flows[0].dst_port == 443
+
+
+def test_direction_uses_service_port_when_no_other_signal():
+    # Both endpoints private and below the ephemeral floor: the well-known
+    # service port (25) decides which side is the server.
+    packet = IP(src="10.0.0.5", dst="10.0.0.9") / UDP(sport=1000, dport=25)
+    packet.time = 1.0
+
+    flows = build_flows([packet])
+
+    assert flows[0].dst_port == 25
+    assert flows[0].src_ip == "10.0.0.5"
+
+
+def test_direction_uses_ephemeral_port_when_only_source_is_ephemeral():
+    packet = IP(src="10.0.0.5", dst="10.0.0.9") / UDP(sport=51000, dport=1000)
+    packet.time = 1.0
+
+    flows = build_flows([packet])
+
+    assert flows[0].src_port == 51000
+    assert flows[0].dst_port == 1000
+
+
+def test_non_tcp_udp_protocol_uses_ip_protocol_number():
+    packet = IP(src="10.0.0.5", dst="203.0.113.10") / ICMP()
+    packet.time = 1.0
+
+    flows = build_flows([packet])
+
+    assert len(flows) == 1
+    # ICMP is IP protocol 1; the flow protocol is the numeric value as a string.
+    assert flows[0].protocol == "1"
+
+
+def test_ipv6_non_transport_protocol_is_keyed_by_next_header():
+    packet = IPv6(src="2001:db8::1", dst="2001:db8::2", nh=59)  # 59 = no next header
+    packet.time = 1.0
+
+    flows = build_flows([packet])
+
+    assert len(flows) == 1
+    assert flows[0].protocol == "59"
+
+
+def test_later_stronger_direction_signal_reorients_the_flow():
+    # First packet is a mid-session data segment (weak direction signal); the
+    # following SYN then authoritatively sets the initiator direction.
+    data = IP(src="203.0.113.10", dst="10.0.0.5") / TCP(sport=443, dport=50000, flags="PA") / Raw(load=b"x")
+    syn = IP(src="10.0.0.5", dst="203.0.113.10") / TCP(sport=50000, dport=443, flags="S")
+    data.time = 1.0
+    syn.time = 2.0
+
+    flows = build_flows([data, syn])
+
+    assert flows[0].src_ip == "10.0.0.5"
+    assert flows[0].dst_ip == "203.0.113.10"
+    assert flows[0].dst_port == 443
+
+
+def test_out_of_order_earlier_packet_updates_first_packet_number():
+    later = IP(src="10.0.0.5", dst="203.0.113.10") / TCP(sport=50000, dport=443)
+    earlier = IP(src="10.0.0.5", dst="203.0.113.10") / TCP(sport=50000, dport=443)
+    later.time = 5.0
+    earlier.time = 1.0
+
+    flows = {}
+    update_flow(flows, later, packet_number=1)
+    update_flow(flows, earlier, packet_number=2)
+
+    flow = next(iter(flows.values()))
+    assert flow.first_seen == 1.0
+    assert flow.first_packet_number == 2

@@ -1,7 +1,7 @@
 {
   "pcap_path": "samples\\suspicious\\demo_beacon_http.pcap",
   "summary": {
-    "packets": 8,
+    "packets": 9,
     "dns_events": 1,
     "http_events": 1,
     "tls_events": 0,
@@ -11,10 +11,10 @@
     "iocs_confirmed": 3,
     "iocs_observed": 0,
     "observed_artifacts": 0,
-    "findings": 6,
+    "findings": 7,
     "critical": 2,
     "high": 1,
-    "medium": 1,
+    "medium": 2,
     "low": 1
   },
   "dns_events": [
@@ -25,7 +25,7 @@
       "query": "xj3k9q2z7m1p0a8c.biz",
       "answers": [],
       "ttl": null,
-      "packet_number": 7,
+      "packet_number": 8,
       "answer_domains": [],
       "answer_ttls": []
     }
@@ -39,7 +39,7 @@
       "host": "malware-test.example",
       "uri": "/payload.exe",
       "user_agent": "python-requests/2.28",
-      "packet_number": 8,
+      "packet_number": 9,
       "src_port": 51515,
       "dst_port": 80,
       "stream_offset": 0,
@@ -56,16 +56,17 @@
       "dst_port": 4444,
       "protocol": "TCP",
       "first_seen": 0.0,
-      "last_seen": 50.0,
-      "packet_count": 6,
-      "byte_count": 276,
+      "last_seen": 60.0,
+      "packet_count": 7,
+      "byte_count": 316,
       "timestamps": [
         0.0,
         10.0,
         20.0,
         30.0,
         40.0,
-        50.0
+        50.0,
+        60.0
       ],
       "first_packet_number": 1,
       "packet_numbers_sample": [
@@ -74,9 +75,10 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
-      "duration": 50.0
+      "duration": 60.0
     },
     {
       "src_ip": "10.0.0.5",
@@ -91,9 +93,9 @@
       "timestamps": [
         65.0
       ],
-      "first_packet_number": 7,
+      "first_packet_number": 8,
       "packet_numbers_sample": [
-        7
+        8
       ],
       "duration": 0.0
     },
@@ -110,9 +112,9 @@
       "timestamps": [
         70.0
       ],
-      "first_packet_number": 8,
+      "first_packet_number": 9,
       "packet_numbers_sample": [
-        8
+        9
       ],
       "duration": 0.0
     }
@@ -122,26 +124,60 @@
       "kind": "domain",
       "value": "malware-test.example",
       "source": "http_host",
-      "packet_number": 8,
+      "packet_number": 9,
       "confidence": "confirmed"
     },
     {
       "kind": "domain",
       "value": "xj3k9q2z7m1p0a8c.biz",
       "source": "dns",
-      "packet_number": 7,
+      "packet_number": 8,
       "confidence": "confirmed"
     },
     {
       "kind": "url",
       "value": "http://malware-test.example/payload.exe",
       "source": "http_request",
-      "packet_number": 8,
+      "packet_number": 9,
       "confidence": "confirmed"
     }
   ],
   "observed_artifacts": [],
   "findings": [
+    {
+      "title": "Possible beaconing behavior",
+      "description": "Regular connection timing suggests command-and-control beaconing.",
+      "evidence": {
+        "src_ip": "10.0.0.5",
+        "dst_ip": "203.0.113.66",
+        "dst_port": 4444,
+        "protocol": "TCP",
+        "events": 7,
+        "timing_events_truncated": false,
+        "mean_interval_seconds": 10.0,
+        "coefficient_of_variation": 0.0,
+        "connection_count": 1,
+        "observation_window_seconds": 60.0,
+        "first_packet_number": 1,
+        "packet_numbers_sample": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "wireshark_filter": "frame.number in {1 2 3 4}"
+      },
+      "category": "network_beaconing",
+      "timestamp": 0.0,
+      "attack_id": null,
+      "attack_name": null,
+      "severity": "medium",
+      "score": 52,
+      "confidence": "low",
+      "tags": [
+        "beaconing"
+      ]
+    },
     {
       "title": "Possible DGA domain",
       "description": "Domain structure has high entropy and weak language-like character patterns.",
@@ -150,8 +186,8 @@
         "scored_label": "xj3k9q2z7m1p0a8c",
         "entropy": 4.0,
         "dga_score": 0.981,
-        "packet_number": 7,
-        "wireshark_filter": "frame.number == 7"
+        "packet_number": 8,
+        "wireshark_filter": "frame.number == 8"
       },
       "category": "dga_domain",
       "timestamp": 65.0,
@@ -174,8 +210,8 @@
         "user_agent": "python-requests/2.28",
         "src_ip": "10.0.0.5",
         "dst_ip": "198.51.100.23",
-        "packet_number": 8,
-        "wireshark_filter": "frame.number == 8"
+        "packet_number": 9,
+        "wireshark_filter": "frame.number == 9"
       },
       "category": "http_automation_client",
       "timestamp": 70.0,
@@ -195,8 +231,8 @@
       "evidence": {
         "url": "http://malware-test.example/payload.exe",
         "method": "GET",
-        "packet_number": 8,
-        "wireshark_filter": "frame.number == 8"
+        "packet_number": 9,
+        "wireshark_filter": "frame.number == 9"
       },
       "category": "http_c2",
       "timestamp": 70.0,
@@ -215,10 +251,23 @@
       "title": "Connection to suspicious non-standard port",
       "description": "Traffic used a port commonly seen in malware labs, backdoors, or tunneling.",
       "evidence": {
-        "src_ip": "10.0.0.5",
-        "dst_ip": "203.0.113.66",
         "dst_port": 4444,
         "protocol": "TCP",
+        "dst_ip": "203.0.113.66",
+        "src_ip": "10.0.0.5",
+        "flow_count": 1,
+        "distinct_destinations": 1,
+        "distinct_sources": 1,
+        "total_packets": 7,
+        "total_bytes": 316,
+        "top_peers": [
+          {
+            "src_ip": "10.0.0.5",
+            "dst_ip": "203.0.113.66",
+            "packet_count": 7,
+            "byte_count": 316
+          }
+        ],
         "first_packet_number": 1,
         "packet_numbers_sample": [
           1,
@@ -226,9 +275,10 @@
           3,
           4,
           5,
-          6
+          6,
+          7
         ],
-        "wireshark_filter": "frame.number in {1 2 3 4 5 6}"
+        "wireshark_filter": "frame.number in {1 2 3 4 5 6 7}"
       },
       "category": "unusual_port",
       "timestamp": 0.0,
@@ -248,8 +298,8 @@
         "ioc_type": "domain",
         "ioc_value": "malware-test.example",
         "source": "http_host",
-        "packet_number": 8,
-        "wireshark_filter": "frame.number == 8"
+        "packet_number": 9,
+        "wireshark_filter": "frame.number == 9"
       },
       "category": "threat_intel_match",
       "timestamp": null,
@@ -271,8 +321,8 @@
         "ioc_type": "domain",
         "ioc_value": "xj3k9q2z7m1p0a8c.biz",
         "source": "dns",
-        "packet_number": 7,
-        "wireshark_filter": "frame.number == 7"
+        "packet_number": 8,
+        "wireshark_filter": "frame.number == 8"
       },
       "category": "threat_intel_match",
       "timestamp": null,
@@ -291,6 +341,11 @@
   "timeline": [
     {
       "timestamp": 0.0,
+      "type": "finding",
+      "summary": "Possible beaconing behavior"
+    },
+    {
+      "timestamp": 0.0,
       "type": "flow",
       "summary": "10.0.0.5:50000 -> 203.0.113.66:4444 TCP"
     },
@@ -301,13 +356,13 @@
     },
     {
       "timestamp": 65.0,
-      "type": "dns",
-      "summary": "xj3k9q2z7m1p0a8c.biz"
+      "type": "finding",
+      "summary": "Possible DGA domain"
     },
     {
       "timestamp": 65.0,
-      "type": "finding",
-      "summary": "Possible DGA domain"
+      "type": "dns",
+      "summary": "xj3k9q2z7m1p0a8c.biz"
     },
     {
       "timestamp": 65.0,

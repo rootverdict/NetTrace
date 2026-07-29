@@ -41,6 +41,62 @@
       "sha256": "3d4d0b98311d7edd4e00def085450db692e62ba3f626075e7cd633f0cc340b86",
       "source_url": "https://www.malware-traffic-analysis.net/2024/12/17/index.html",
       "archive_url": "https://www.malware-traffic-analysis.net/2024/12/17/2024-12-17-SmartApeSG-to-NetSupport-RAT.pcap.zip"
+    },
+    {
+      "name": "Mirai IoT botnet",
+      "filename": "2025-12-17-testing-the-Mirai-botnet-URL-on-a-VM.pcap",
+      "size_bytes": 10240188,
+      "sha256": "c4a670d740317258e7de867b5f2144fab4d1f61cf9981c7b9cc9658408be1738",
+      "source_url": "https://www.malware-traffic-analysis.net/2025/12/17/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2025/12/17/2025-12-17-Mirai-traffic.zip"
+    },
+    {
+      "name": "In-the-wild scans (Dec 1-3)",
+      "filename": "2025-12-01-thru-12-03-in-the-wild-scans.pcap",
+      "size_bytes": 7178,
+      "sha256": "b94e7ba32daa600717e7d0e8146a0c295d060013c097a8c593170cc25d9b4544",
+      "source_url": "https://www.malware-traffic-analysis.net/2025/12/17/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2025/12/17/2025-12-17-Mirai-traffic.zip"
+    },
+    {
+      "name": "XWorm from email",
+      "filename": "2025-11-19-Xworm-infection-traffic.pcap",
+      "size_bytes": 4198726,
+      "sha256": "c63d9260c5d93b98c51b353f4f6059c52b756ab648cc27c814d3aede41142d23",
+      "source_url": "https://www.malware-traffic-analysis.net/2025/11/19/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2025/11/19/2025-11-19-Xworm-infection-traffic.pcap.zip"
+    },
+    {
+      "name": "Ten days of scans and probes",
+      "filename": "2025-12-28-ten-days-of-scans-and-probes-and-web-traffic-hitting-my-web-server.pcap",
+      "size_bytes": 35244725,
+      "sha256": "8d84760b22ce279dcea7ebdbac6f7203a7aee647758f29f60480ee9e16c0ed38",
+      "source_url": "https://www.malware-traffic-analysis.net/2025/12/28/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2025/12/28/2025-12-28-ten-days-of-scans-and-probes-and-web-traffic-hitting-my-web-server.pcap.zip"
+    },
+    {
+      "name": "XLoader (Formbook)",
+      "filename": "2025-09-05-XLoader-infection-traffic.pcap",
+      "size_bytes": 24416742,
+      "sha256": "75259a8faf308767473afb36a4ed732bfed86e7affef2d3e65deac8bfab5d8c1",
+      "source_url": "https://www.malware-traffic-analysis.net/2025/09/05/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2025/09/05/2025-09-05-XLoader-infection-traffic.pcap.zip"
+    },
+    {
+      "name": "Infected Android phone",
+      "filename": "2025-10-02-traffic-from-infected-Android-phone.pcap",
+      "size_bytes": 24144199,
+      "sha256": "07668ef68cc6103d97c3f93f5ba5f5cf2322ff0fcaad33d10dfd1f0668a9a5d6",
+      "source_url": "https://www.malware-traffic-analysis.net/2025/10/02/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2025/10/02/2025-10-02-traffic-from-infected-Android-phone.pcap.zip"
+    },
+    {
+      "name": "Koi Loader / Koi Stealer",
+      "filename": "2025-07-08-traffic-from-Koi-Loader-Koi-Stealer-infection.pcap",
+      "size_bytes": 51110229,
+      "sha256": "c7c71779ee9bc15ed5a6278daa92c90cd9a8ced10f1eb7f3a281903dc11a785d",
+      "source_url": "https://www.malware-traffic-analysis.net/2025/07/08/index.html",
+      "archive_url": "https://www.malware-traffic-analysis.net/2025/07/08/2025-07-08-traffic-from-Koi-Loader-Koi-Stealer-infection.pcap.zip"
     }
   ]
 }

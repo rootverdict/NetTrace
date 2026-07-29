@@ -65,14 +65,17 @@ def test_suspicious_user_agent_matches_by_tool_name_ignoring_version(tmp_path):
 def test_redact_sensitive_query_params_removes_secrets():
     # Bug #16: HTTP query params were stored/exported verbatim, leaking
     # tokens/API keys/session IDs into every report format.
-    assert redact_sensitive_query_params("/reset-password?token=secret123") == "/reset-password?token=%3Credacted%3E"
-    assert redact_sensitive_query_params("/api?api_key=123456") == "/api?api_key=%3Credacted%3E"
+    # The placeholder spelling is cosmetic; the secret being gone is the point.
+    for uri, secret in (("/reset-password?token=secret123", "secret123"), ("/api?api_key=123456", "123456")):
+        assert secret not in redact_sensitive_query_params(uri)
+    assert redact_sensitive_query_params("/reset-password?token=secret123") == "/reset-password?token=<redacted>"
+    assert redact_sensitive_query_params("/api?api_key=123456") == "/api?api_key=<redacted>"
 
 
 def test_redact_sensitive_query_params_preserves_non_sensitive_params():
     result = redact_sensitive_query_params("/download?signature=xyz&legit_param=keepme")
     assert "legit_param=keepme" in result
-    assert "signature=%3Credacted%3E" in result
+    assert "signature=<redacted>" in result
 
 
 def test_redact_sensitive_query_params_leaves_benign_query_untouched():
@@ -93,4 +96,4 @@ def test_http_extractor_redacts_query_params_in_constructed_event():
 
     assert event is not None
     assert "abcdef123" not in event.uri
-    assert "session=%3Credacted%3E" in event.uri
+    assert "session=<redacted>" in event.uri

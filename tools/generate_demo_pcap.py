@@ -10,14 +10,29 @@ def main() -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
 
     packets = []
+
+    # The beacons must each carry a distinct sequence number. Scapy defaults
+    # seq to 0, so leaving it unset made every beacon after the first look like
+    # a retransmission to the guard in flow_builder -- the flow recorded a
+    # single timestamp, and this "beacon" demo produced no beaconing finding.
+    beacon_payload = b"beacon"
+    sequence = 1000
+    handshake = IP(src="10.0.0.5", dst="203.0.113.66") / TCP(
+        sport=50000, dport=4444, flags="S", seq=sequence
+    )
+    handshake.time = 0.0
+    packets.append(handshake)
+    sequence += 1
+
     for index in range(6):
         packet = (
             IP(src="10.0.0.5", dst="203.0.113.66")
-            / TCP(sport=50000, dport=4444, flags="PA")
-            / Raw(load=b"beacon")
+            / TCP(sport=50000, dport=4444, flags="PA", seq=sequence)
+            / Raw(load=beacon_payload)
         )
-        packet.time = float(index * 10)
+        packet.time = float((index + 1) * 10)
         packets.append(packet)
+        sequence += len(beacon_payload)
 
     dns_packet = (
         IP(src="10.0.0.5", dst="8.8.8.8")

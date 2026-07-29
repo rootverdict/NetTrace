@@ -36,6 +36,7 @@
     code { display: block; margin-top: 8px; padding: 12px; overflow: auto; border-radius: 8px; background: #07101d; color: #b9d4ec; white-space: pre-wrap; }
     .warning { padding: 12px 15px; border: 1px solid #784c17; border-radius: 10px; background: #2a1d0c; color: #fbd38d; }
     .empty { padding: 18px; color: var(--muted); }
+    .truncation { margin: 10px 0 0; padding: 10px 14px; border: 1px dashed #3a5a7d; border-radius: 10px; background: rgba(19, 36, 58, .7); color: #a9c4df; font-size: 13px; }
     @media (max-width: 640px) { main { width: min(100% - 24px, 1180px); } th, td { padding: 9px; } }
   </style>
 </head>
@@ -68,7 +69,7 @@
   </table></div>
 
   <h2>Findings</h2>
-  {% for finding in report.findings|sort(attribute="score", reverse=true) %}
+  {% for finding in findings.items %}
   <div class="finding {{ finding.severity }}">
     <h3><span class="badge">{{ finding.severity.upper() }}</span>{{ finding.title }}</h3>
     <p>{{ finding.description }}</p>
@@ -81,33 +82,34 @@
   {% else %}
   <p class="empty">No suspicious findings were generated.</p>
   {% endfor %}
+  {% if findings.truncated %}<p class="truncation">{{ findings.notice }}</p>{% endif %}
 
   <h2>IOCs</h2>
   <div class="panel"><table>
     <tr><th>Type</th><th>Value</th><th>Source</th></tr>
-    {% for ioc in report.iocs %}
+    {% for ioc in iocs.items %}
     <tr><td>{{ ioc.kind }}</td><td>{{ ioc.value }}</td><td>{{ ioc.source }}</td></tr>
     {% endfor %}
   </table></div>
+  {% if iocs.truncated %}<p class="truncation">{{ iocs.notice }}</p>{% endif %}
 
   <h2>Observed Artifacts</h2>
   <div class="panel"><table>
     <tr><th>Type</th><th>Value</th><th>Source</th></tr>
-    {% for artifact in report.observed_artifacts[:500] %}
+    {% for artifact in artifacts.items %}
     <tr><td>{{ artifact.kind }}</td><td>{{ artifact.value }}</td><td>{{ artifact.source }}</td></tr>
     {% endfor %}
   </table></div>
+  {% if artifacts.truncated %}<p class="truncation">{{ artifacts.notice }}</p>{% endif %}
 
   <h2>Timeline</h2>
   <div class="panel"><table>
     <tr><th>Timestamp</th><th>Type</th><th>Summary</th></tr>
-    {% for item in report.timeline[:200] %}
+    {% for item in timeline.items %}
     <tr><td>{{ "%.3f"|format(item.timestamp) }}</td><td>{{ item.type }}</td><td>{{ item.summary }}</td></tr>
     {% endfor %}
   </table></div>
-  {% if report.timeline|length > 200 %}
-  <p><em>Timeline truncated to 200 entries. See JSON output for full timeline.</em></p>
-  {% endif %}
+  {% if timeline.truncated %}<p class="truncation">{{ timeline.notice }}</p>{% endif %}
 </main>
 </body>
 </html>

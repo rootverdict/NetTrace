@@ -10,6 +10,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from nettrace.models.report import AnalysisReport
+from nettrace.report.display_limits import MAX_FINDINGS, limited
 
 
 MAX_EVIDENCE_CHARS = 1200
@@ -57,7 +58,12 @@ def render_pdf_report(report: AnalysisReport, output_path: Path) -> Path:
             elements.append(Paragraph(f"&bull; {pdf_text(warning)}", styles["Normal"]))
         elements.append(Spacer(1, 12))
     elements.append(Paragraph("Findings", styles["Heading2"]))
-    for finding in sorted(report.findings, key=lambda item: item.score, reverse=True):
+    findings = limited(
+        sorted(report.findings, key=lambda item: item.score, reverse=True),
+        MAX_FINDINGS,
+        ordering="highest-scoring",
+    )
+    for finding in findings.items:
         elements.append(Paragraph(f"{pdf_text(finding.severity.upper())} - {pdf_text(finding.title)}", styles["Heading3"]))
         elements.append(Paragraph(pdf_text(finding.description), styles["Normal"]))
         if finding.attack_id:
@@ -70,5 +76,7 @@ def render_pdf_report(report: AnalysisReport, output_path: Path) -> Path:
         evidence = pdf_text(format_evidence(finding.evidence))
         elements.append(Paragraph(f"Evidence: {evidence}", styles["Code"]))
         elements.append(Spacer(1, 8))
+    if findings.truncated:
+        elements.append(Paragraph(pdf_text(findings.notice), styles["Italic"]))
     doc.build(elements)
     return output_path

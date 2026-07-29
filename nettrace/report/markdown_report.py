@@ -154,8 +154,16 @@ def markdown_text(value: str) -> str:
     return html.escape(str(value).replace("\r", " ").replace("\n", " "), quote=False)
 
 
+def _single_line(value: str) -> str:
+    return str(value).replace("\r", " ").replace("\n", " ")
+
+
 def markdown_code(value: str) -> str:
-    sanitized = markdown_text(value)
+    # Deliberately not HTML-escaped: a Markdown code span renders its content
+    # literally, so escaping here surfaced as a literal "&amp;" in every URL
+    # carrying a query string. A conforming renderer escapes the span's content
+    # itself when emitting HTML, so the value stays inert.
+    sanitized = _single_line(value)
     longest_run = max((len(run) for run in re.findall(r"`+", sanitized)), default=0)
     delimiter = "`" * max(1, longest_run + 1)
     padding = " " if sanitized.startswith(("`", " ")) or sanitized.endswith(("`", " ")) else ""

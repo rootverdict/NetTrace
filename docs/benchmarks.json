@@ -10,46 +10,109 @@
       "sample": "2023-03-17-Emotet-E5-infection-traffic.pcap",
       "size_bytes": 13146516,
       "packets": 19895,
-      "peak_rss_mib": 79.7,
+      "peak_rss_mib": 80.2,
       "flows": 813,
-      "findings": 32,
-      "median_seconds": 9.881
+      "findings": 25,
+      "median_seconds": 7.612
     },
     {
       "sample": "2024-11-14-Raspberry-Robin-infection-traffic.pcap",
       "size_bytes": 77329090,
       "packets": 91481,
-      "peak_rss_mib": 82.0,
+      "peak_rss_mib": 80.8,
       "flows": 51,
-      "findings": 42,
-      "median_seconds": 44.47
+      "findings": 13,
+      "median_seconds": 35.514
     },
     {
       "sample": "2024-11-24-infection-by-Redtail-bash-script-from-45.202.35_190.pcap",
       "size_bytes": 5045555,
       "packets": 43041,
-      "peak_rss_mib": 151.9,
+      "peak_rss_mib": 146.1,
       "flows": 40687,
-      "findings": 2,
-      "median_seconds": 22.387
+      "findings": 6,
+      "median_seconds": 17.513
     },
     {
       "sample": "2024-12-04-AgentTesla-variant-using-FTP.pcap",
       "size_bytes": 56400,
       "packets": 182,
-      "peak_rss_mib": 76.5,
+      "peak_rss_mib": 76.7,
       "flows": 10,
       "findings": 6,
-      "median_seconds": 0.081
+      "median_seconds": 0.073
     },
     {
       "sample": "2024-12-17-SmartApeSG-to-NetSupport-RAT.pcap",
       "size_bytes": 23115175,
       "packets": 16931,
-      "peak_rss_mib": 77.5,
+      "peak_rss_mib": 77.6,
       "flows": 16,
-      "findings": 4,
-      "median_seconds": 8.552
+      "findings": 3,
+      "median_seconds": 6.785
+    },
+    {
+      "sample": "2025-12-17-testing-the-Mirai-botnet-URL-on-a-VM.pcap",
+      "size_bytes": 10240188,
+      "packets": 118105,
+      "peak_rss_mib": 164.1,
+      "flows": 50000,
+      "findings": 16,
+      "median_seconds": 39.986
+    },
+    {
+      "sample": "2025-12-01-thru-12-03-in-the-wild-scans.pcap",
+      "size_bytes": 7178,
+      "packets": 42,
+      "peak_rss_mib": 76.4,
+      "flows": 5,
+      "findings": 0,
+      "median_seconds": 0.02
+    },
+    {
+      "sample": "2025-11-19-Xworm-infection-traffic.pcap",
+      "size_bytes": 4198726,
+      "packets": 4645,
+      "peak_rss_mib": 77.0,
+      "flows": 5,
+      "findings": 2,
+      "median_seconds": 1.818
+    },
+    {
+      "sample": "2025-12-28-ten-days-of-scans-and-probes-and-web-traffic-hitting-my-web-server.pcap",
+      "size_bytes": 35244725,
+      "packets": 374554,
+      "peak_rss_mib": 182.2,
+      "flows": 50000,
+      "findings": 134,
+      "median_seconds": 118.64
+    },
+    {
+      "sample": "2025-09-05-XLoader-infection-traffic.pcap",
+      "size_bytes": 24416742,
+      "packets": 41424,
+      "peak_rss_mib": 90.3,
+      "flows": 1960,
+      "findings": 40,
+      "median_seconds": 16.953
+    },
+    {
+      "sample": "2025-10-02-traffic-from-infected-Android-phone.pcap",
+      "size_bytes": 24144199,
+      "packets": 29125,
+      "peak_rss_mib": 79.8,
+      "flows": 400,
+      "findings": 23,
+      "median_seconds": 10.88
+    },
+    {
+      "sample": "2025-07-08-traffic-from-Koi-Loader-Koi-Stealer-infection.pcap",
+      "size_bytes": 51110229,
+      "packets": 43721,
+      "peak_rss_mib": 82.6,
+      "flows": 216,
+      "findings": 37,
+      "median_seconds": 16.862
     }
   ]
 }

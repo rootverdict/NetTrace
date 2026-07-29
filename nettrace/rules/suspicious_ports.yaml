@@ -1,6 +1,21 @@
+# Ports worth a look in malware traffic. Findings aggregate per port, so a scan
+# touching tens of thousands of hosts produces one finding carrying the
+# destination count -- adding a heavily scanned port here no longer floods the
+# report or evicts unrelated detections.
 ports:
-  - 4444
-  - 6667
-  - 9001
+  # Backdoor / tunneling defaults
   - 1337
+  - 4444
+  - 6667   # IRC, long-running botnet C2
+  - 9001
   - 31337
+
+  # Cleartext remote administration, the primary IoT botnet vector
+  - 23     # Telnet
+  - 2323   # alternate Telnet, favoured by Mirai variants
+
+  # Device exploit ports used by Mirai-family scanners
+  - 5555   # Android Debug Bridge
+  - 7547   # TR-069 / CWMP
+  - 37215  # Huawei HG532 UPnP
+  - 52869  # Realtek SDK UPnP

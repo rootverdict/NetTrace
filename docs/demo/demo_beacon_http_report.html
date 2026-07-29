@@ -36,6 +36,7 @@
     code { display: block; margin-top: 8px; padding: 12px; overflow: auto; border-radius: 8px; background: #07101d; color: #b9d4ec; white-space: pre-wrap; }
     .warning { padding: 12px 15px; border: 1px solid #784c17; border-radius: 10px; background: #2a1d0c; color: #fbd38d; }
     .empty { padding: 18px; color: var(--muted); }
+    .truncation { margin: 10px 0 0; padding: 10px 14px; border: 1px dashed #3a5a7d; border-radius: 10px; background: rgba(19, 36, 58, .7); color: #a9c4df; font-size: 13px; }
     @media (max-width: 640px) { main { width: min(100% - 24px, 1180px); } th, td { padding: 9px; } }
   </style>
 </head>
@@ -46,10 +47,10 @@
     <h1>NetTrace Analysis Report</h1>
     <p class="path"><strong>Capture:</strong> samples\suspicious\demo_beacon_http.pcap</p>
     <div class="cards">
-      <div class="card"><span>Packets</span><strong>8</strong></div>
+      <div class="card"><span>Packets</span><strong>9</strong></div>
       <div class="card"><span>Flows</span><strong>3</strong></div>
       <div class="card"><span>IOCs</span><strong>3</strong></div>
-      <div class="card"><span>Findings</span><strong>6</strong></div>
+      <div class="card"><span>Findings</span><strong>7</strong></div>
       <div class="card"><span>High / Critical</span><strong>3</strong></div>
     </div>
   </header>
@@ -58,7 +59,7 @@
   <h2>Summary</h2>
   <div class="panel"><table>
     <tr><th>Metric</th><th>Count</th></tr>
-    <tr><td>Packets</td><td>8</td></tr>
+    <tr><td>Packets</td><td>9</td></tr>
     <tr><td>Dns Events</td><td>1</td></tr>
     <tr><td>Http Events</td><td>1</td></tr>
     <tr><td>Tls Events</td><td>0</td></tr>
@@ -68,10 +69,10 @@
     <tr><td>Iocs Confirmed</td><td>3</td></tr>
     <tr><td>Iocs Observed</td><td>0</td></tr>
     <tr><td>Observed Artifacts</td><td>0</td></tr>
-    <tr><td>Findings</td><td>6</td></tr>
+    <tr><td>Findings</td><td>7</td></tr>
     <tr><td>Critical</td><td>2</td></tr>
     <tr><td>High</td><td>1</td></tr>
-    <tr><td>Medium</td><td>1</td></tr>
+    <tr><td>Medium</td><td>2</td></tr>
     <tr><td>Low</td><td>1</td></tr>
   </table></div>
 
@@ -85,8 +86,8 @@
   &#34;ioc_type&#34;: &#34;domain&#34;,
   &#34;ioc_value&#34;: &#34;malware-test.example&#34;,
   &#34;source&#34;: &#34;http_host&#34;,
-  &#34;packet_number&#34;: 8,
-  &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
+  &#34;packet_number&#34;: 9,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 9&#34;
 }</code></details>
   </div>
   <div class="finding critical">
@@ -98,8 +99,8 @@
   &#34;ioc_type&#34;: &#34;domain&#34;,
   &#34;ioc_value&#34;: &#34;xj3k9q2z7m1p0a8c.biz&#34;,
   &#34;source&#34;: &#34;dns&#34;,
-  &#34;packet_number&#34;: 7,
-  &#34;wireshark_filter&#34;: &#34;frame.number == 7&#34;
+  &#34;packet_number&#34;: 8,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
 }</code></details>
   </div>
   <div class="finding high">
@@ -112,8 +113,8 @@
   &#34;scored_label&#34;: &#34;xj3k9q2z7m1p0a8c&#34;,
   &#34;entropy&#34;: 4.0,
   &#34;dga_score&#34;: 0.981,
-  &#34;packet_number&#34;: 7,
-  &#34;wireshark_filter&#34;: &#34;frame.number == 7&#34;
+  &#34;packet_number&#34;: 8,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
 }</code></details>
   </div>
   <div class="finding medium">
@@ -124,8 +125,33 @@
     <details><summary>Packet evidence</summary><code>{
   &#34;url&#34;: &#34;http://malware-test.example/payload.exe&#34;,
   &#34;method&#34;: &#34;GET&#34;,
-  &#34;packet_number&#34;: 8,
-  &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
+  &#34;packet_number&#34;: 9,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 9&#34;
+}</code></details>
+  </div>
+  <div class="finding medium">
+    <h3><span class="badge">MEDIUM</span>Possible beaconing behavior</h3>
+    <p>Regular connection timing suggests command-and-control beaconing.</p>
+    <p><strong>Score:</strong> 52</p>
+    <details><summary>Packet evidence</summary><code>{
+  &#34;src_ip&#34;: &#34;10.0.0.5&#34;,
+  &#34;dst_ip&#34;: &#34;203.0.113.66&#34;,
+  &#34;dst_port&#34;: 4444,
+  &#34;protocol&#34;: &#34;TCP&#34;,
+  &#34;events&#34;: 7,
+  &#34;timing_events_truncated&#34;: false,
+  &#34;mean_interval_seconds&#34;: 10.0,
+  &#34;coefficient_of_variation&#34;: 0.0,
+  &#34;connection_count&#34;: 1,
+  &#34;observation_window_seconds&#34;: 60.0,
+  &#34;first_packet_number&#34;: 1,
+  &#34;packet_numbers_sample&#34;: [
+    1,
+    2,
+    3,
+    4
+  ],
+  &#34;wireshark_filter&#34;: &#34;frame.number in {1 2 3 4}&#34;
 }</code></details>
   </div>
   <div class="finding low">
@@ -133,10 +159,23 @@
     <p>Traffic used a port commonly seen in malware labs, backdoors, or tunneling.</p>
     <p><strong>Score:</strong> 32</p>
     <details><summary>Packet evidence</summary><code>{
-  &#34;src_ip&#34;: &#34;10.0.0.5&#34;,
-  &#34;dst_ip&#34;: &#34;203.0.113.66&#34;,
   &#34;dst_port&#34;: 4444,
   &#34;protocol&#34;: &#34;TCP&#34;,
+  &#34;dst_ip&#34;: &#34;203.0.113.66&#34;,
+  &#34;src_ip&#34;: &#34;10.0.0.5&#34;,
+  &#34;flow_count&#34;: 1,
+  &#34;distinct_destinations&#34;: 1,
+  &#34;distinct_sources&#34;: 1,
+  &#34;total_packets&#34;: 7,
+  &#34;total_bytes&#34;: 316,
+  &#34;top_peers&#34;: [
+    {
+      &#34;src_ip&#34;: &#34;10.0.0.5&#34;,
+      &#34;dst_ip&#34;: &#34;203.0.113.66&#34;,
+      &#34;packet_count&#34;: 7,
+      &#34;byte_count&#34;: 316
+    }
+  ],
   &#34;first_packet_number&#34;: 1,
   &#34;packet_numbers_sample&#34;: [
     1,
@@ -144,9 +183,10 @@
     3,
     4,
     5,
-    6
+    6,
+    7
   ],
-  &#34;wireshark_filter&#34;: &#34;frame.number in {1 2 3 4 5 6}&#34;
+  &#34;wireshark_filter&#34;: &#34;frame.number in {1 2 3 4 5 6 7}&#34;
 }</code></details>
   </div>
   <div class="finding info">
@@ -159,8 +199,8 @@
   &#34;user_agent&#34;: &#34;python-requests/2.28&#34;,
   &#34;src_ip&#34;: &#34;10.0.0.5&#34;,
   &#34;dst_ip&#34;: &#34;198.51.100.23&#34;,
-  &#34;packet_number&#34;: 8,
-  &#34;wireshark_filter&#34;: &#34;frame.number == 8&#34;
+  &#34;packet_number&#34;: 9,
+  &#34;wireshark_filter&#34;: &#34;frame.number == 9&#34;
 }</code></details>
   </div>
 
@@ -180,10 +220,11 @@
   <h2>Timeline</h2>
   <div class="panel"><table>
     <tr><th>Timestamp</th><th>Type</th><th>Summary</th></tr>
+    <tr><td>0.000</td><td>finding</td><td>Possible beaconing behavior</td></tr>
     <tr><td>0.000</td><td>flow</td><td>10.0.0.5:50000 -&gt; 203.0.113.66:4444 TCP</td></tr>
     <tr><td>0.000</td><td>finding</td><td>Connection to suspicious non-standard port</td></tr>
-    <tr><td>65.000</td><td>dns</td><td>xj3k9q2z7m1p0a8c.biz</td></tr>
     <tr><td>65.000</td><td>finding</td><td>Possible DGA domain</td></tr>
+    <tr><td>65.000</td><td>dns</td><td>xj3k9q2z7m1p0a8c.biz</td></tr>
     <tr><td>65.000</td><td>flow</td><td>10.0.0.5:53000 -&gt; 8.8.8.8:53 UDP</td></tr>
     <tr><td>70.000</td><td>http</td><td>http://malware-test.example/payload.exe</td></tr>
     <tr><td>70.000</td><td>flow</td><td>10.0.0.5:51515 -&gt; 198.51.100.23:80 TCP</td></tr>

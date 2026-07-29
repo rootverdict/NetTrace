@@ -88,3 +88,7 @@ def main() -> None:
     print(f"Output directory: {output_dir.resolve()}")
     if not args.no_md:
         print(f"Markdown findings: {md_path.resolve()}")
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()

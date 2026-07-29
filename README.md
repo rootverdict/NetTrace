@@ -38,6 +38,7 @@ Quick proof: [PDF demo report](docs/demo/demo_beacon_http_report.pdf) | [HTML de
 - Adds packet numbers and Wireshark `frame.number` filters to report evidence
 - Exports JSON, HTML, and PDF reports
 - Applies configurable flow, event, aggregate TCP stream-buffer, and timeline limits with report warnings
+- Caps each HTML and PDF report section for readability and states exactly how many entries are not shown; the JSON export is never capped and remains the complete record
 
 ## Architecture
 
@@ -300,8 +301,8 @@ The Emotet showcase analysis produced:
 - 8 plaintext HTTP requests
 - 32 TLS SNI events
 - 813 flows
-- 180 IOCs
-- 32 findings
+- 135 IOCs
+- 25 findings
 
 The analyst write-up identifies Emotet staging URLs, C2 infrastructure candidates, high-frequency encrypted flows, and ATT&CK-associated behavior where protocol evidence supports the mapping.
 
@@ -309,7 +310,7 @@ The analyst write-up identifies Emotet staging URLs, C2 infrastructure candidate
 
 The [validation matrix](docs/VALIDATION.md) compares source-described behavior with extracted NetTrace evidence and records heuristic limitations without claiming an unsupported global detection rate.
 
-The five-capture benchmark corpus contains 171,530 packets and 41,577 flows. On the documented Windows/Python 3.12 system, individual analysis runs took 0.081 to 44.470 seconds with observed peak process memory between 76.5 and 151.9 MiB. See [BENCHMARKS.md](docs/BENCHMARKS.md) for the complete table, environment, caveats, and reproduction command.
+The twelve-capture benchmark corpus contains 783,146 packets and 144,163 flows. On the documented Windows/Python 3.12 system, individual analysis runs took 0.020 to 118.640 seconds with observed peak process memory between 76.4 and 182.2 MiB. See [BENCHMARKS.md](docs/BENCHMARKS.md) for the complete table, environment, caveats, and reproduction command.
 
 ## Known Limitations
 

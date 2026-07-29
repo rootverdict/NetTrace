@@ -354,11 +354,13 @@ def test_engine_keeps_same_packet_http_requests_with_different_hosts(tmp_path):
 def test_engine_caps_findings_at_configured_max(tmp_path):
     # Bug #10: there was previously no cap -- a hostile/noisy capture could
     # produce an unbounded number of findings.
+    # Distinct suspicious ports, not distinct destinations on one port: port
+    # findings aggregate per port, so five flows to 4444 are now one finding.
     packets = []
-    for index in range(5):
+    for index, port in enumerate((4444, 6667, 9001, 1337, 31337)):
         packet = (
             IP(src="10.0.0.5", dst=f"203.0.113.{index}")
-            / TCP(sport=40000 + index, dport=4444, seq=100, flags="PA")
+            / TCP(sport=40000 + index, dport=port, seq=100, flags="PA")
             / Raw(load=b"x" * 10)
         )
         packet.time = float(index)

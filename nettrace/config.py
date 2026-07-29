@@ -13,6 +13,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "beacon_min_events": 5,
         "beacon_max_cv": 0.25,
         "beacon_min_interval_seconds": 2,
+        "beacon_max_interval_seconds": 3_600,
         "beacon_max_group_events": 10_000,
         "dga_entropy_threshold": 3.4,
         "dga_score_threshold": 0.6,
@@ -126,6 +127,7 @@ def validate_config(config: dict[str, Any]) -> None:
     _positive_integer(thresholds.get("beacon_min_events"), "thresholds.beacon_min_events", 2)
     _number(thresholds.get("beacon_max_cv"), "thresholds.beacon_max_cv")
     _number(thresholds.get("beacon_min_interval_seconds"), "thresholds.beacon_min_interval_seconds")
+    _number(thresholds.get("beacon_max_interval_seconds"), "thresholds.beacon_max_interval_seconds")
     _positive_integer(thresholds.get("beacon_max_group_events"), "thresholds.beacon_max_group_events", 2)
     _number(thresholds.get("dga_entropy_threshold"), "thresholds.dga_entropy_threshold")
     _number(thresholds.get("dga_score_threshold"), "thresholds.dga_score_threshold", 0, 1)

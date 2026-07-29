@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 
 from scapy.layers.inet import IP, TCP
 from scapy.layers.inet6 import IPv6
+from scapy.packet import Padding
 
 TCP_SEQUENCE_MODULUS = 1 << 32
 
@@ -59,6 +60,37 @@ def ip_endpoints(packet) -> tuple[str, str] | None:
     if packet.haslayer(IPv6):
         return packet[IPv6].src, packet[IPv6].dst
     return None
+
+
+def tcp_payload(packet, tcp=None) -> bytes:
+    """Return a TCP segment's real payload, excluding Ethernet padding.
+
+    A frame below the 60-byte Ethernet minimum is zero-padded on the wire, and
+    scapy dissects that padding as a `Padding` layer beneath TCP -- so a bare
+    ACK reports six bytes of "payload". Feeding those bytes into reassembly
+    opens a phantom stream at the sequence number the next real segment will
+    use, and the real segment then looks like a conflicting retransmission that
+    the overlap policy rejects: the actual data is dropped and the stream is
+    left holding padding it can never parse.
+
+    Note that `Padding` subclasses `Raw`, so `packet.haslayer(Raw)` is true for
+    a padded bare ACK -- callers must not use that as a "has data" test either.
+    """
+    if tcp is None:
+        if not packet.haslayer(TCP):
+            return b""
+        tcp = packet[TCP]
+    payload = tcp.payload
+    if not payload or isinstance(payload, Padding):
+        return b""
+    data = bytes(payload)
+    padding = payload.getlayer(Padding)
+    if padding is None:
+        return data
+    padding_length = len(bytes(padding))
+    if not padding_length:
+        return data
+    return data[: max(0, len(data) - padding_length)]
 
 
 class TCPStreamBuffers:
@@ -119,10 +151,22 @@ class TCPStreamBuffers:
     def _expire_idle(self, current_timestamp: float) -> None:
         if self.max_idle_seconds <= 0:
             return
-        for key, state in list(self._streams.items()):
+        # `_streams` is held in least-recently-active order (every touch does a
+        # `move_to_end`, and `last_timestamp` is updated in the same place), so
+        # the idle streams are a prefix and the scan can stop at the first live
+        # one. Walking the whole dict here made the per-packet cost scale with
+        # the number of concurrent streams -- ~5x slower at 4000 open streams.
+        #
+        # A capture whose timestamps go backwards can leave a stream out of
+        # order and delay its eviction. That is harmless: idle expiry is a
+        # resource guard, and max_streams / max_buffer_bytes /
+        # max_total_buffer_bytes still bound memory absolutely.
+        while self._streams:
+            key, state = next(iter(self._streams.items()))
             last_seen = state.last_timestamp or state.first_timestamp
-            if current_timestamp - last_seen > self.max_idle_seconds:
-                self._remove_stream(key, discarded=True)
+            if current_timestamp - last_seen <= self.max_idle_seconds:
+                break
+            self._remove_stream(key, discarded=True)
 
     def _merge_segment(self, state: TCPStreamState, sequence: int, segment: _TCPSegment) -> tuple[bool, bool]:
         if state.base_seq is None or state.next_seq is None:
@@ -214,7 +258,7 @@ class TCPStreamBuffers:
         key = (src_ip, dst_ip, int(tcp.sport), int(tcp.dport))
         flags = int(tcp.flags)
         syn_start = bool(flags & 0x02) and not bool(flags & 0x10)
-        payload = bytes(tcp.payload)
+        payload = tcp_payload(packet, tcp)
         raw_sequence = (int(tcp.seq) + (1 if flags & 0x02 else 0)) % TCP_SEQUENCE_MODULUS
         existing_state = self._streams.get(key)
         sequence = (

@@ -40,7 +40,7 @@ Included:
 - JSON, HTML, PDF, and Markdown findings output.
 - Configurable event, flow, TCP stream-buffer, and timeline limits.
 - Safe synthetic demo PCAP generation.
-- Validation against the current five-sample malware-traffic corpus.
+- Validation against the current malware-traffic corpus (5 captures at V1 close; since expanded to 12).
 - Automated tests for the core parser, analysis, mapping, reporting, and CLI paths.
 
 Not included in V1:
@@ -75,12 +75,30 @@ Candidate V2 work:
 - Richer protocol coverage, such as SMTP, SMB, IRC, WebDAV, JA3/JA4-style TLS fingerprints, and HTTP/2 metadata where feasible.
 - Rule authoring and validation helpers for project-specific detections.
 - Better tuning workflow for thresholds, allowlists, and suspicious-port rules.
-- Additional real-world validation samples and regression datasets.
 - Optional exports for SIEM-friendly formats.
 - Optional case-package export that bundles findings, reports, config, and reproducibility metadata.
 - More detailed performance profiling and memory regression checks.
-- Improved false-positive controls for high-frequency and unusual-port findings.
 - Optional integrations with external tools, provided offline-only operation remains intact.
+
+### Delivered early
+
+Pulled forward because expanding the corpus exposed defects that could not be
+fixed without them. Recorded here so the candidate list above stays an accurate
+statement of what is still outstanding.
+
+- **Additional real-world validation samples.** Corpus expanded from 5 to 12
+  captures (171,530 to 783,146 packets), covering IoT botnet scanning, mobile,
+  and a ten-day internet-background-noise control sample.
+- **Improved false-positive controls for high-frequency and unusual-port
+  findings.** Findings aggregate per port and per destination endpoint. This was
+  a prerequisite, not a nicety: one finding per flow meant a Mirai capture
+  produced 20,000 findings and evicted unrelated real detections from the
+  report. Aggregating first made it safe to widen the suspicious-port rules,
+  which then found real telnet scanning in a capture that had been in the corpus
+  from the beginning.
+- **Partial: threshold tuning.** `thresholds.beacon_max_interval_seconds` bounds
+  beaconing from above, removing 127 scheduled-scanner false positives. The
+  broader tuning *workflow* remains V2.
 
 V2 work should not weaken the V1 promise: NetTrace must remain useful as an offline CLI tool with explainable evidence.
 

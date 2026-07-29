@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from scapy.layers.inet import TCP
-from scapy.packet import Raw
 
 from nettrace.models.events import TLSEvent
-from nettrace.parsers.tcp_stream import TCPStreamBuffers, ip_endpoints
+from nettrace.parsers.tcp_stream import TCPStreamBuffers, ip_endpoints, tcp_payload
 
 TLS_PORTS = {443, 8443, 4443, 9443}
 
@@ -71,12 +70,12 @@ def _client_hello_from_records(buffer: bytearray) -> tuple[str, int]:
 
 def extract_tls_event(packet, packet_number: int = 0) -> TLSEvent | None:
     endpoints = ip_endpoints(packet)
-    if endpoints is None or not packet.haslayer(TCP) or not packet.haslayer(Raw):
+    if endpoints is None or not packet.haslayer(TCP):
         return None
     tcp = packet[TCP]
     if tcp.dport not in TLS_PORTS and tcp.sport not in TLS_PORTS:
         return None
-    sni = extract_sni(bytes(packet[Raw].load))
+    sni = extract_sni(tcp_payload(packet, tcp))
     if not sni:
         return None
     return TLSEvent(

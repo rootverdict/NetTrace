@@ -14,6 +14,7 @@ def detect_beaconing(flows: list[Flow], thresholds: dict) -> list[Finding]:
     min_events = int(thresholds.get("beacon_min_events", 5))
     max_cv = float(thresholds.get("beacon_max_cv", 0.25))
     min_interval = float(thresholds.get("beacon_min_interval_seconds", 2))
+    max_interval = float(thresholds.get("beacon_max_interval_seconds", 3600))
     max_group_events = int(thresholds.get("beacon_max_group_events", 10_000))
 
     grouped: dict[tuple[str, str, int, str], list[Flow]] = defaultdict(list)
@@ -57,6 +58,14 @@ def detect_beaconing(flows: list[Flow], thresholds: dict) -> list[Finding]:
 
         if processed_events < min_events or interval_count < min_events - 1:
             continue
+        # An upper bound as well as a lower one. Interval regularity alone does
+        # not separate C2 from a scanner or scheduled job that happens to be
+        # punctual: a ten-day capture of internet background noise produced 127
+        # "beacons" with mean intervals of 2 to 48 hours. Real C2 in this corpus
+        # beacons at 10s and 900s, and the slowest observed false positive is
+        # 7,109s, so the default sits in that gap.
+        if mean_interval > max_interval:
+            continue
         if mean_interval < min_interval:
             continue
         stdev = math.sqrt(interval_m2 / (interval_count - 1)) if interval_count > 1 else 0.0
@@ -68,15 +77,11 @@ def detect_beaconing(flows: list[Flow], thresholds: dict) -> list[Finding]:
             # beacon spans multiple flows, and the old code silently attributed
             # all 30+ events to a single connection's packet numbers.
             contributing_flows = [activities[index][0] for index in sorted(contributing_indices)]
-            packet_numbers_sample: list[int] = []
             first_packet_number = 0
             wireshark_numbers: list[int] = []
             for contributing_flow in contributing_flows:
                 flow_evidence = flow_packet_evidence(contributing_flow, limit=4)
-                sample = flow_evidence.get("packet_numbers_sample", [])
-                wireshark_numbers.extend(sample)
-                if sample and not packet_numbers_sample:
-                    packet_numbers_sample = sample
+                wireshark_numbers.extend(flow_evidence.get("packet_numbers_sample", []))
                 if not first_packet_number and flow_evidence.get("first_packet_number"):
                     first_packet_number = flow_evidence["first_packet_number"]
             observation_window = max((f.last_seen for f in contributing_flows), default=flow.last_seen) - min(

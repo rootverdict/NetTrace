@@ -66,6 +66,8 @@ def test_render_html_creates_parent_escapes_content_and_limits_timeline(tmp_path
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
     assert "Observed Artifacts" in html
     assert "45.33.32.156" in html
-    assert "Timeline truncated to 200 entries" in html
+    # The notice names the true total and the hidden count, not just the cap.
+    assert "Showing the first 200 of 201 entries" in html
+    assert "1 not shown" in html
     assert "event 199" in html
     assert "event 200" not in html

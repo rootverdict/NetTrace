@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from scapy.layers.inet import TCP
-from scapy.packet import Raw
 
 from nettrace.models.events import HTTPEvent, redact_sensitive_query_params
-from nettrace.parsers.tcp_stream import TCPStreamBuffers, ip_endpoints
+from nettrace.parsers.tcp_stream import TCPStreamBuffers, ip_endpoints, tcp_payload
 
 HTTP_METHODS = {"GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "PATCH", "CONNECT", "TRACE"}
 HTTP_PORTS = {80, 8080, 8000, 8888}
@@ -40,11 +39,28 @@ def _chunked_message_length(buffer: bytearray, body_start: int) -> int | None:
 
 
 def _parse_headers(payload: bytes) -> tuple[str, str, str, str] | None:
+    # Bare-LF line endings are accepted alongside CRLF. NetSupport RAT's C2
+    # POSTs terminate lines with LF only, and splitting on CRLF alone collapsed
+    # the whole request into a single "line": every header was lost, so Host and
+    # User-Agent came back empty even though both were present in the packet.
+    normalized = payload.replace(b"\r\n", b"\n")
+
+    # A request head is only complete once its blank-line terminator arrives.
+    # Without this the single-packet fallback in engine.py emitted the first
+    # half of a split request as a *finished* event: `Host:` had not been
+    # received yet, so HTTPEvent.url fell back to the destination IP and
+    # published a URL IOC for a request that never appeared on the wire, on top
+    # of duplicating the real event once reassembly completed.
+    if b"\n\n" not in normalized:
+        return None
+
+    # Parse only the head, so a body line containing a colon cannot masquerade
+    # as a header.
     try:
-        text = payload.decode("iso-8859-1", errors="ignore")
+        text = normalized.split(b"\n\n", 1)[0].decode("iso-8859-1", errors="ignore")
     except Exception:
         return None
-    lines = text.split("\r\n")
+    lines = text.split("\n")
     if not lines:
         return None
     parts = lines[0].split()
@@ -65,13 +81,16 @@ def extract_http_event(
     allow_any_port: bool = False,
 ) -> HTTPEvent | None:
     endpoints = ip_endpoints(packet)
-    if endpoints is None or not packet.haslayer(TCP) or not packet.haslayer(Raw):
+    if endpoints is None or not packet.haslayer(TCP):
         return None
     tcp = packet[TCP]
     ports = HTTP_PORTS if http_ports is None else http_ports
     if tcp.dport not in ports and not allow_any_port:
         return None
-    parsed = _parse_headers(bytes(packet[Raw].load))
+    payload = tcp_payload(packet, tcp)
+    if not payload:
+        return None
+    parsed = _parse_headers(payload)
     if not parsed:
         return None
     method, uri, host, user_agent = parsed

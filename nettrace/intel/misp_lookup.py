@@ -168,7 +168,12 @@ class MispLookup:
                 )
                 continue
             attributes = self._attributes(result)
-            matched_counts = {ioc.value: 0 for ioc in batch}
+            # Keyed by (kind, value), not value alone: a value can legitimately
+            # be present as two IOCs of different kinds -- `normalize_domain`
+            # accepts an all-numeric name, so a DNS query for "1.2.3.4" yields a
+            # domain IOC alongside the ip IOC for the same string. Sharing one
+            # counter made a match on either one report a hit for both.
+            matched_counts = {(ioc.kind, ioc.value): 0 for ioc in batch}
             for attribute in attributes:
                 attribute_values = self._attribute_values(attribute)
                 for ioc in batch:
@@ -185,9 +190,9 @@ class MispLookup:
                     else:
                         matched = ioc.value in attribute_values
                     if matched:
-                        matched_counts[ioc.value] += 1
+                        matched_counts[(ioc.kind, ioc.value)] += 1
             for ioc in batch:
-                match_count = matched_counts.get(ioc.value, 0)
+                match_count = matched_counts.get((ioc.kind, ioc.value), 0)
                 if not match_count:
                     continue
                 findings.append(

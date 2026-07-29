@@ -47,7 +47,11 @@ def redact_sensitive_query_params(uri: str) -> str:
             redacted_pairs.append((key, value))
     if not redacted_any:
         return uri
-    new_query = urlencode(redacted_pairs)
+    # Keep the placeholder's angle brackets literal instead of letting urlencode
+    # emit "%3Credacted%3E", which reads like a real value in a report. This
+    # matches the FTP extractor's "<redacted>" and costs nothing: a redacted URI
+    # is evidence, not something to be fetched.
+    new_query = urlencode(redacted_pairs, safe="<>")
     return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, new_query, parsed.fragment))
 
 

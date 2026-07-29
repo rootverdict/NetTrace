@@ -206,3 +206,45 @@ def test_rst_packet_with_payload_is_buffered_and_returned_for_parsing():
     assert len(buffers._streams) == 0
     assert buffers.incomplete_streams == 0
     assert buffers.discarded_streams == 1
+
+
+def test_idle_expiry_removes_only_streams_past_the_idle_window():
+    buffers = TCPStreamBuffers(max_idle_seconds=10)
+    for index, sport in enumerate((51000, 51001, 51002), start=1):
+        packet = _segment(100, b"GET /x", index, timestamp=float(index))
+        packet["TCP"].sport = sport
+        buffers.feed(packet, index)
+    assert len(buffers._streams) == 3
+
+    # t=12 is >10s past the first stream (t=1) only; t=2 and t=3 are exactly at
+    # and inside the window, and the comparison is strict.
+    recent = _segment(100, b"GET /y", 4, timestamp=12.0)
+    recent["TCP"].sport = 51003
+    buffers.feed(recent, 4)
+
+    remaining = {key[2] for key in buffers._streams}
+    assert remaining == {51001, 51002, 51003}
+
+
+def test_idle_expiry_scan_stops_at_the_first_live_stream():
+    """The scan walks least-recently-active first and stops early, so a live
+    stream at the front must not hide older idle ones behind it."""
+    buffers = TCPStreamBuffers(max_idle_seconds=10)
+    first = _segment(100, b"GET /a", 1, timestamp=1.0)
+    first["TCP"].sport = 52000
+    buffers.feed(first, 1)
+
+    # Re-touch the first stream so it moves to the back of the queue.
+    again = _segment(106, b"GET /b", 2, timestamp=2.0)
+    again["TCP"].sport = 52000
+    buffers.feed(again, 2)
+
+    second = _segment(100, b"GET /c", 3, timestamp=3.0)
+    second["TCP"].sport = 52001
+    buffers.feed(second, 3)
+
+    later = _segment(100, b"GET /d", 4, timestamp=20.0)
+    later["TCP"].sport = 52002
+    buffers.feed(later, 4)
+
+    assert {key[2] for key in buffers._streams} == {52002}

@@ -13,10 +13,10 @@
 - FTP events: 0
 - Flows: 3
 - IOCs: 3
-- Findings: 6
+- Findings: 7
 - Critical findings: 2
 - High findings: 1
-- Medium findings: 1
+- Medium findings: 2
 - Low findings: 1
 
 ## Analysis Warnings
@@ -30,6 +30,7 @@ NetTrace analyzed `samples\suspicious\demo_beacon_http.pcap` and identified `10.
 ## Finding Types
 
 - Local threat intel match: 2
+- Possible beaconing behavior: 1
 - Possible DGA domain: 1
 - Command-line or automation HTTP client observed: 1
 - Possible executable/script download request: 1
