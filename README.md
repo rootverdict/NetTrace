@@ -237,7 +237,7 @@ By default, the script writes one separate file per scan:
 findings/2023-03-17-Emotet-E5-infection-traffic_FINDINGS.md
 ```
 
-To create or update the root aggregate showcase report from the five real-capture JSON outputs, run:
+To create or update the root aggregate showcase report from the twelve real-capture JSON outputs, run:
 
 ```powershell
 python tools\generate_real_findings.py
@@ -258,13 +258,20 @@ The generated Markdown includes:
 
 ## Real Malware Traffic Analysis
 
-NetTrace was validated against 5 real public Malware-Traffic-Analysis.net PCAP samples across multiple malware families and traffic patterns:
+NetTrace was validated against 12 real public Malware-Traffic-Analysis.net PCAP samples across multiple malware families and traffic patterns:
 
 - Emotet Epoch 5 - staging URLs and command-and-control traffic
 - Raspberry Robin - loader/worm-style infection traffic
 - Redtail - Linux malware and server-side infection traffic
 - AgentTesla - credential-stealer traffic using FTP behavior
-- NetSupport RAT - remote access malware traffic
+- SmartApeSG to NetSupport RAT - remote access malware traffic
+- Mirai - IoT botnet Telnet and exploit-port scanning
+- XLoader (Formbook) - infostealer HTTP C2 with DGA-scored domains
+- Koi Loader / Koi Stealer - loader-to-stealer infection traffic
+- XWorm - email-delivered RAT traffic
+- Infected Android phone - mobile infection traffic
+- In-the-wild scans (Dec 1-3) - internet background scanning (false-positive stress test)
+- Ten days of scans and probes - long-horizon scanning against a web server (false-positive stress test)
 
 The large real PCAPs are intentionally not stored in Git. Their source URLs, extracted-file sizes, and SHA-256 hashes are recorded in `samples/real/manifest.json`. Existing local copies remain usable.
 
@@ -288,6 +295,13 @@ Validation corpus filenames:
 - `samples/real/2024-11-24-infection-by-Redtail-bash-script-from-45.202.35_190.pcap`
 - `samples/real/2024-12-04-AgentTesla-variant-using-FTP.pcap`
 - `samples/real/2024-12-17-SmartApeSG-to-NetSupport-RAT.pcap`
+- `samples/real/2025-12-17-testing-the-Mirai-botnet-URL-on-a-VM.pcap`
+- `samples/real/2025-12-01-thru-12-03-in-the-wild-scans.pcap`
+- `samples/real/2025-11-19-Xworm-infection-traffic.pcap`
+- `samples/real/2025-12-28-ten-days-of-scans-and-probes-and-web-traffic-hitting-my-web-server.pcap`
+- `samples/real/2025-09-05-XLoader-infection-traffic.pcap`
+- `samples/real/2025-10-02-traffic-from-infected-Android-phone.pcap`
+- `samples/real/2025-07-08-traffic-from-Koi-Loader-Koi-Stealer-infection.pcap`
 
 Showcase analysis:
 
