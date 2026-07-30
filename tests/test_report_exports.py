@@ -36,6 +36,28 @@ def sample_report() -> AnalysisReport:
     )
 
 
+def test_summary_counts_info_severity_findings():
+    # Info-level findings were previously dropped from the severity breakdown,
+    # so the per-severity counts did not sum to the total finding count.
+    report = sample_report()
+    report.findings.append(
+        Finding(
+            title="Automation client observed",
+            description="Low-signal automation client.",
+            category="http_automation_client",
+            evidence={},
+            severity="info",
+            score=10,
+        )
+    )
+
+    summary = report.summary()
+
+    assert summary["info"] == 1
+    assert summary["findings"] == 2
+    assert summary["critical"] + summary["high"] + summary["medium"] + summary["low"] + summary["info"] == summary["findings"]
+
+
 def test_export_json_creates_parent_and_serializes_complete_report(tmp_path):
     output = tmp_path / "nested" / "report.json"
 

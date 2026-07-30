@@ -30,22 +30,40 @@ def test_connect_target_intel_mapping_is_refined_as_web_protocol():
     assert finding.attack_id == "T1071.001"
 
 
-def test_threat_intel_flow_mapping_uses_destination_port():
-    finding = Finding("hit", "desc", {"source": "flow:tcp:4444"}, "threat_intel_match")
+def test_threat_intel_flow_bare_port_is_left_unmapped():
+    # A raw flow endpoint reveals only a port number, which confirms neither the
+    # application protocol nor whether it is non-standard for that protocol.
+    # Such a match must stay unmapped: not T1571 "Non-Standard Port" (system
+    # ports 22/25/123 and standard registered services 3306/3389/5432 are not
+    # non-standard), and not even the generic T1071 base technique (a port-only
+    # flow does not establish any application-layer protocol).
+    for port_source in (
+        "flow:tcp:22",
+        "flow:tcp:25",
+        "flow:udp:123",
+        "flow:tcp:3306",
+        "flow:tcp:3389",
+        "flow:tcp:5432",
+        "flow:tcp:4444",
+    ):
+        finding = Finding("hit", "desc", {"source": port_source}, "threat_intel_match")
 
-    tag_findings([finding])
+        tag_findings([finding])
 
-    assert finding.attack_id == "T1571"
-    assert finding.attack_name == "Non-Standard Port"
+        assert finding.attack_id is None, port_source
+        assert finding.attack_name is None, port_source
+        assert finding.tags == [], port_source
 
 
-def test_threat_intel_flow_mapping_requires_exact_source_format():
+def test_threat_intel_malformed_flow_source_is_left_unmapped():
+    # A flow source we cannot even parse establishes strictly less than a bare
+    # port, so it likewise stays unmapped rather than defaulting to T1071.
     finding = Finding("hit", "desc", {"source": "flow:tcp:4444:extra"}, "threat_intel_match")
 
     tag_findings([finding])
 
-    assert finding.attack_id == "T1071"
-    assert finding.attack_name == "Application Layer Protocol"
+    assert finding.attack_id is None
+    assert finding.attack_name is None
 
 
 def test_unusual_port_and_ftp_upload_are_not_mapped_from_weak_context():
@@ -67,29 +85,35 @@ def test_threat_intel_tls_source_maps_to_encrypted_channel():
     assert finding.attack_name == "Encrypted Channel"
 
 
-def test_threat_intel_flow_port_selects_protocol_technique():
+def test_threat_intel_flow_well_known_ports_are_left_unmapped():
+    # A port does not confirm its application protocol: DNS-on-53, HTTP-on-80 and
+    # TLS-on-443 are conventions, not proof. A raw flow match therefore stays
+    # unmapped even on these well-known ports, consistent with every other
+    # flow:* source. Protocol techniques come only from parser-confirmed sources
+    # (see the dns/http/tls source tests above), never from a bare port.
     dns_flow = Finding("hit", "desc", {"source": "flow:udp:53"}, "threat_intel_match")
     web_flow = Finding("hit", "desc", {"source": "flow:tcp:80"}, "threat_intel_match")
     tls_flow = Finding("hit", "desc", {"source": "flow:tcp:443"}, "threat_intel_match")
 
     tag_findings([dns_flow, web_flow, tls_flow])
 
-    assert dns_flow.attack_id == "T1071.004"
-    assert web_flow.attack_id == "T1071.001"
-    assert tls_flow.attack_id == "T1573"
+    assert dns_flow.attack_id is None
+    assert web_flow.attack_id is None
+    assert tls_flow.attack_id is None
 
 
-def test_threat_intel_flow_with_unparseable_source_falls_back_to_base_technique():
-    # A non-tcp/udp protocol, a non-numeric port, and an out-of-range port must
-    # each fail the flow parse and fall back to the category's base T1071 rather
-    # than crash or guess.
+def test_threat_intel_flow_with_unparseable_source_stays_unmapped():
+    # A non-tcp/udp protocol, a non-numeric port, and an out-of-range port each
+    # fail the flow parse. Because they are still raw flow observations that
+    # confirm no application-layer protocol, they stay unmapped (no T1071)
+    # rather than crash or guess.
     for bad_source in ("flow:sctp:80", "flow:tcp:not-a-port", "flow:tcp:99999"):
         finding = Finding("hit", "desc", {"source": bad_source}, "threat_intel_match")
 
         tag_findings([finding])
 
-        assert finding.attack_id == "T1071"
-        assert finding.attack_name == "Application Layer Protocol"
+        assert finding.attack_id is None, bad_source
+        assert finding.attack_name is None, bad_source
 
 
 def test_network_beaconing_maps_only_when_port_confirms_protocol():

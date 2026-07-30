@@ -15,7 +15,8 @@
     "critical": 2,
     "high": 1,
     "medium": 2,
-    "low": 1
+    "low": 1,
+    "info": 1
   },
   "dns_events": [
     {

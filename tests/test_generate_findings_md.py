@@ -241,6 +241,55 @@ def test_top_ips_appends_bare_ioc_ip_not_already_listed():
     assert top_ips(report, "10.0.0.5") == ["198.51.100.7"]
 
 
+def test_top_domains_does_not_suppress_brand_lookalike_subdomains():
+    # A brand token must match on a full DNS label, not as a substring: an
+    # attacker domain whose registrable name is attacker.example must survive
+    # even though "microsoft" appears inside its leftmost label.
+    report = sample_report()
+    report["iocs"].extend(
+        [
+            {"kind": "domain", "value": "microsoft-login.attacker.example"},
+            {"kind": "domain", "value": "microsoft.attacker.example"},
+            {"kind": "domain", "value": "azure.attacker.example"},
+            {"kind": "domain", "value": "www.microsoft.com"},
+        ]
+    )
+
+    domains = top_domains(report)
+
+    # Brand as a substring of, or as, an attacker-controlled subdomain label.
+    assert "microsoft-login.attacker.example" in domains
+    assert "microsoft.attacker.example" in domains
+    assert "azure.attacker.example" in domains
+    # Brand owns the registrable domain -> genuinely common, stays suppressed.
+    assert "www.microsoft.com" not in domains
+
+
+def test_analyst_paragraph_names_actual_findings_without_forcing_http_staging():
+    # A high-severity DGA finding with no HTTP URLs and no public IP candidates
+    # must not be described as "HTTP staging" / C2 traffic.
+    report = sample_report()
+    report["http_events"] = []
+    report["iocs"] = [{"kind": "domain", "value": "malware-test.example"}]
+    report["flows"] = []
+    report["findings"] = [
+        {
+            "title": "Possible DGA domain",
+            "category": "dga_domain",
+            "severity": "high",
+            "attack_id": "T1568.002",
+            "attack_name": "Dynamic Resolution: Domain Generation Algorithms",
+            "evidence": {},
+        }
+    ]
+
+    markdown = build_markdown(report)
+
+    assert "led by Possible DGA domain" in markdown
+    assert "plaintext HTTP staging URLs" not in markdown
+    assert "public IP/port candidates" not in markdown
+
+
 def test_analyst_paragraph_scales_down_for_low_severity_only_findings():
     report = sample_report()
     for finding in report["findings"]:

@@ -18,6 +18,7 @@
 - High findings: 1
 - Medium findings: 2
 - Low findings: 1
+- Info findings: 1
 
 ## Analysis Warnings
 
@@ -25,7 +26,7 @@
 
 ## Analyst Finding
 
-NetTrace analyzed `samples\suspicious\demo_beacon_http.pcap` and identified `10.0.0.5` as the internal host with the highest observed external traffic volume (a triage heuristic, not confirmation of compromise). The capture contains 1 DNS events, 1 plaintext HTTP requests, 0 TLS SNI events, 0 FTP commands, and 3 flows. 3 high/critical-severity finding(s) were produced, with the strongest signal being HTTP staging activity (`http://malware-test.example/payload.exe`) and high-volume or encrypted traffic involving `203.0.113.66:4444`. This warrants malware staging and command-and-control triage; heuristic findings should still be validated with packet context before conclusions are drawn.
+NetTrace analyzed `samples\suspicious\demo_beacon_http.pcap` and identified `10.0.0.5` as the internal host with the highest observed external traffic volume (a triage heuristic, not confirmation of compromise). The capture contains 1 DNS events, 1 plaintext HTTP requests, 0 TLS SNI events, 0 FTP commands, and 3 flows. 3 high/critical-severity finding(s) were produced, led by Possible DGA domain, Local threat intel match. Associated network indicators include plaintext HTTP staging URLs (`http://malware-test.example/payload.exe`) and public IP/port candidates `203.0.113.66:4444`. These warrant focused triage; heuristic findings should still be validated with packet context before conclusions are drawn.
 
 ## Finding Types
 

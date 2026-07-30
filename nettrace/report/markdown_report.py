@@ -55,10 +55,27 @@ def format_ip_port(ip: str, port: int | str) -> str:
 
 
 def is_common_host(value: str) -> bool:
+    # Match tokens on DNS-label boundaries, never as a bare substring. A plain
+    # substring test suppressed attacker domains such as
+    # microsoft-login.attacker.example, whose registrable domain is
+    # attacker.example and whose only "microsoft" is part of a larger label.
     lowered = value.lower()
+    labels = [label for label in lowered.strip(".").split(".") if label]
+    # The registrable ("second-level") label anchors bare brand tokens.
+    registrable_label = labels[-2] if len(labels) >= 2 else ""
+    for token in COMMON_HOST_TOKENS:
+        if "." in token:
+            # Multi-label token: match the whole host or a dot-bounded suffix.
+            if lowered == token or lowered.endswith(f".{token}"):
+                return True
+        elif token == registrable_label:
+            # Single-word brand token: suppress only when the brand owns the
+            # registrable domain (e.g. www.microsoft.com), never when it is an
+            # attacker-controlled subdomain label such as
+            # microsoft.attacker.example or azure.attacker.example.
+            return True
     return (
-        any(token in lowered for token in COMMON_HOST_TOKENS)
-        or any(lowered.startswith(prefix) for prefix in COMMON_DOMAIN_PREFIXES)
+        any(lowered.startswith(prefix) for prefix in COMMON_DOMAIN_PREFIXES)
         or lowered.endswith(".local")
         or lowered.endswith(".localdomain")
     )
@@ -182,7 +199,9 @@ def build_analyst_paragraph(report: dict[str, Any], victim: str, urls: list[str]
     ip_text = ", ".join(markdown_code(ip) for ip in ips[:8]) if ips else "no public C2 candidates"
     findings = report.get("findings", [])
     findings_count = summary.get("findings", len(findings))
-    strong_findings = sum(1 for finding in findings if finding.get("severity") in {"high", "critical"})
+    strong = [finding for finding in findings if finding.get("severity") in {"high", "critical"}]
+    strong_findings = len(strong)
+    strong_titles = unique([finding.get("title", "") for finding in strong], 4)
 
     host_clause = (
         f"identified {markdown_code(victim)} as the internal host with the highest observed external traffic "
@@ -200,11 +219,24 @@ def build_analyst_paragraph(report: dict[str, Any], victim: str, urls: list[str]
     # Bug #18: the old text asserted "consistent with malware staging and C2
     # triage" even on a capture with zero findings and zero staging URLs. The
     # conclusion now scales with what was actually found.
+    #
+    # It also unconditionally named "HTTP staging" and "C2" as the strongest
+    # signal even when the only high/critical finding was unrelated (e.g. a DGA
+    # domain), producing a materially false analyst conclusion. The lead now
+    # names the actual high/critical finding types, and the staging-URL and
+    # C2-candidate clauses appear only when those artifacts are genuinely
+    # present.
     if strong_findings:
+        lead = ", ".join(markdown_text(title) for title in strong_titles) or "elevated-severity heuristics"
+        signal_parts = []
+        if urls:
+            signal_parts.append(f"plaintext HTTP staging URLs ({url_text})")
+        if ips:
+            signal_parts.append(f"public IP/port candidates {ip_text}")
+        signal_clause = f" Associated network indicators include {' and '.join(signal_parts)}." if signal_parts else ""
         conclusion = (
-            f" {strong_findings} high/critical-severity finding(s) were produced, with the strongest signal being "
-            f"HTTP staging activity ({url_text}) and high-volume or encrypted traffic involving {ip_text}. This "
-            "warrants malware staging and command-and-control triage; heuristic findings should still be validated "
+            f" {strong_findings} high/critical-severity finding(s) were produced, led by {lead}."
+            f"{signal_clause} These warrant focused triage; heuristic findings should still be validated "
             "with packet context before conclusions are drawn."
         )
     elif findings_count:
@@ -250,6 +282,7 @@ def build_markdown(report: dict[str, Any], source: str = "", source_url: str = "
             f"- High findings: {summary.get('high', 0)}",
             f"- Medium findings: {summary.get('medium', 0)}",
             f"- Low findings: {summary.get('low', 0)}",
+            f"- Info findings: {summary.get('info', 0)}",
             "",
             "## Analysis Warnings",
             "",

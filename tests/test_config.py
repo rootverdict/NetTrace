@@ -94,3 +94,31 @@ def test_load_config_rejects_unknown_top_level_key(tmp_path):
 
     with pytest.raises(ConfigError, match="Unknown top-level key"):
         load_config(config_path)
+
+
+def test_load_config_rejects_nan_and_infinity_numbers(tmp_path):
+    # YAML `.nan`/`.inf` parse to floats that slip past the range checks and
+    # silently disable the threshold; they must be rejected as non-finite.
+    nan_config = tmp_path / "nan.yaml"
+    nan_config.write_text("thresholds:\n  dga_score_threshold: .nan\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="finite"):
+        load_config(nan_config)
+
+    inf_config = tmp_path / "inf.yaml"
+    inf_config.write_text("thresholds:\n  beacon_max_interval_seconds: .inf\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="finite"):
+        load_config(inf_config)
+
+
+def test_load_config_accepts_inline_misp_api_key(tmp_path):
+    # misp.api_key is a supported, validated setting; the unknown-key guard must
+    # not reject it.
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "misp:\n  enabled: true\n  url: https://misp.example\n  api_key: secret-token\n",
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config["misp"]["api_key"] == "secret-token"

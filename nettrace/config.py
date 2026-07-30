@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import math
 from importlib import resources
 from pathlib import Path
 from typing import Any
@@ -89,6 +90,11 @@ def _mapping(value: Any, name: str) -> dict[str, Any]:
 def _number(value: Any, name: str, minimum: float = 0, maximum: float | None = None) -> None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ConfigError(f"{name} must be a number.")
+    # YAML `.nan`/`.inf` parse to floats that slip past the range comparisons
+    # below (every comparison with NaN is False, and +inf passes when no maximum
+    # is set), silently disabling the threshold. Reject non-finite values.
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ConfigError(f"{name} must be a finite number.")
     if value < minimum or (maximum is not None and value > maximum):
         range_text = f" between {minimum} and {maximum}" if maximum is not None else f" at least {minimum}"
         raise ConfigError(f"{name} must be{range_text}.")
@@ -110,6 +116,11 @@ def _reject_unknown_keys(loaded: dict[str, Any] | None, name: str) -> None:
         if not isinstance(section_value, dict):
             continue
         known = set(INTEL_KEYS) if section == "intel" else set(DEFAULT_CONFIG.get(section, {}).keys())
+        if section == "misp":
+            # api_key is a supported, validated MISP setting (see
+            # validate_config) that simply has no entry in DEFAULT_CONFIG, so
+            # the unknown-key guard was rejecting a documented option.
+            known.add("api_key")
         unknown = set(section_value.keys()) - known
         if unknown:
             raise ConfigError(

@@ -39,6 +39,7 @@ class AnalysisReport:
             "high": sum(1 for finding in self.findings if finding.severity == "high"),
             "medium": sum(1 for finding in self.findings if finding.severity == "medium"),
             "low": sum(1 for finding in self.findings if finding.severity == "low"),
+            "info": sum(1 for finding in self.findings if finding.severity == "info"),
         }
 
     def to_dict(self) -> dict[str, Any]:

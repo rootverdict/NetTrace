@@ -107,8 +107,12 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
             )
             if event_key in http_event_keys:
                 continue
-            http_event_keys.add(event_key)
             if len(http_events) < max_http_events:
+                # Only grow the dedup set while events are still being kept.
+                # Once the cap is reached nothing more is stored, so continuing
+                # to record every unique key would grow memory without bound on
+                # an adversarial capture -- defeating the cap's purpose.
+                http_event_keys.add(event_key)
                 http_events.append(http_event)
             else:
                 warnings.add(f"HTTP events truncated at {max_http_events} entries.")

@@ -114,6 +114,24 @@ def test_bare_lf_request_still_needs_its_terminator():
     assert _parse_headers(head_only) is None
 
 
+def test_bare_lf_request_split_across_segments_yields_one_stream_event(tmp_path: Path):
+    """The stream framer must recognize a bare-LF (\\n\\n) terminator, not only
+    CRLF. Previously an LF-only request split across two segments stayed buffered
+    forever and no event was ever emitted."""
+    cut = LF_REQUEST.index(b"Host:")  # Host + terminator land in the second segment
+    packets = [_segment(1, LF_REQUEST[:cut], 1.0), _segment(1 + cut, LF_REQUEST[cut:], 2.0)]
+    path = tmp_path / "split-lf.pcap"
+    wrpcap(str(path), packets)
+
+    report = analyze_pcap(path, load_config(Path("config.yaml")))
+
+    assert len(report.http_events) == 1
+    event = report.http_events[0]
+    assert event.method == "POST"
+    assert event.host == "194.180.191.64"
+    assert event.user_agent == "NetSupport Manager/1.3"
+
+
 def test_body_lines_cannot_masquerade_as_headers():
     """The LF body below contains colon-free lines, but a crafted one must not
     reach the header map -- only the head is parsed."""

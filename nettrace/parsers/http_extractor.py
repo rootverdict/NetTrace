@@ -122,15 +122,25 @@ class HTTPStreamExtractor:
             return []
         events: list[HTTPEvent] = []
         while True:
-            header_end = state.buffer.find(b"\r\n\r\n")
-            if header_end < 0:
+            # Frame on either CRLF or bare-LF terminators, whichever completes
+            # first. `_parse_headers` already accepts LF-only requests (NetSupport
+            # RAT's C2 POSTs use them), but the stream framer only recognized
+            # \r\n\r\n, so a split LF request stayed buffered forever and no event
+            # was ever emitted.
+            terminators = [
+                (position, length)
+                for position, length in ((state.buffer.find(b"\r\n\r\n"), 4), (state.buffer.find(b"\n\n"), 2))
+                if position >= 0
+            ]
+            if not terminators:
                 break
-            header_length = header_end + 4
+            header_end, terminator_length = min(terminators)
+            header_length = header_end + terminator_length
             header = bytes(state.buffer[:header_length])
             content_length = 0
             chunked = False
             invalid_content_length = False
-            for line in header.split(b"\r\n")[1:]:
+            for line in header.replace(b"\r\n", b"\n").split(b"\n")[1:]:
                 if line.lower().startswith(b"content-length:"):
                     try:
                         content_length = max(0, int(line.split(b":", 1)[1].strip()))
