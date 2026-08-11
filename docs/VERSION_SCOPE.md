@@ -64,6 +64,20 @@ Done when:
 - The test suite passes with coverage at or above the configured threshold.
 - Known V1 limitations are documented instead of hidden.
 
+Status: closed. Each criterion above was verified against the current tree rather
+than assumed:
+
+- Install, analysis, and all four outputs run from the `nettrace` console script,
+  `python -m nettrace.cli`, and `main.py`.
+- Findings carry packet numbers and Wireshark `frame.number` filters.
+- The synthetic demo reproduces `docs/demo/` byte for byte, and all twelve real
+  captures reproduce the counts recorded in `FINDINGS.md`.
+- 269 tests pass at 94.96% coverage against the enforced 80% floor.
+- Limitations are recorded in `docs/VALIDATION.md`, the README, and the
+  "Not included in V1" list above.
+
+New work belongs in V2 unless it repairs one of the criteria above.
+
 ## V2 Scope
 
 Goal: improve analyst workflow, expand detection coverage, and make NetTrace easier to operate after the V1 core remains stable.

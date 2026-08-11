@@ -51,7 +51,17 @@ $testTemp = Join-Path $projectRoot ".test-tmp-$PID"
 if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
 & $venvPython -m pip install -e "${projectRoot}[dev]"
 if ($LASTEXITCODE -ne 0) { throw "dependency installation failed" }
-& $venvPython -m pytest -p no:cacheprovider --basetemp=$testTemp --cov=nettrace --cov-report=term
-if ($LASTEXITCODE -ne 0) { throw "test suite failed" }
+try {
+    & $venvPython -m pytest -p no:cacheprovider --basetemp=$testTemp --cov=nettrace --cov-report=term
+    if ($LASTEXITCODE -ne 0) { throw "test suite failed" }
+}
+finally {
+    # pytest leaves --basetemp behind on purpose (it retains recent runs), so
+    # without this every setup run drops another .test-tmp-<PID> in the project
+    # root. .gitignore hides them, which is exactly why they accumulate unnoticed.
+    if (Test-Path -LiteralPath $testTemp) {
+        Remove-Item -LiteralPath $testTemp -Recurse -Force
+    }
+}
 
 Write-Host "Development environment ready: $venvTarget"

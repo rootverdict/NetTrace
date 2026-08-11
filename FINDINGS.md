@@ -19,13 +19,13 @@ NetTrace was run against 12 real public Malware-Traffic-Analysis.net PCAP sample
 | Ten days of scans and probes | 374554 | 640 | 6180 | 0 | 0 | 50000 | 1784 | 10297 | 134 |
 | XLoader (Formbook) | 41424 | 4151 | 1484 | 89 | 0 | 1960 | 816 | 115 | 40 |
 | Infected Android phone | 29125 | 126 | 33 | 40 | 0 | 400 | 152 | 44 | 23 |
-| Koi Loader / Koi Stealer | 43721 | 303 | 55 | 120 | 0 | 216 | 335 | 66 | 37 |
+| Koi Loader / Koi Stealer | 43721 | 303 | 54 | 120 | 0 | 216 | 335 | 66 | 37 |
 
 ## Aggregate Totals
 
 - Packets: 783146
 - DNS events: 5577
-- HTTP events: 7813
+- HTTP events: 7812
 - TLS events: 314
 - FTP events: 16
 - Flows: 144163
@@ -396,15 +396,15 @@ NetTrace was run against 12 real public Malware-Traffic-Analysis.net PCAP sample
 - `01vk.top`
 - `02eg.top`
 - `3300bei2.cdn.91ddos.com`
+- `a-0003.a-msedge.net`
 - `a1666.dscr.akamai.net`
 - `a1672.dscr.akamai.net`
 - `a1830.dscg2.akamai.net`
 - `a1834.dscg2.akamai.net`
 - `a1847.dscd.akamai.net`
+- `afd-bxxea57natk6k-b3arhwd4gve9dac0.b02.azurefd.net`
 - `agconcrete.info`
 - `arr.pt.cdn-dysxb.com`
-- `assets-msn-com-world-atm-default.trafficmanager.net`
-- `atm-settingsfe-prod-geo2.trafficmanager.net`
 
 ### Notable IPs And Ports
 
@@ -510,6 +510,7 @@ NetTrace was run against 12 real public Malware-Traffic-Analysis.net PCAP sample
 ### Notable Domains
 
 - `483230049-atari-embeds.googleusercontent.com`
+- `a-0003.a-msedge.net`
 - `a1666.dscr.akamai.net`
 - `a1672.dscr.akamai.net`
 - `a1830.dscg2.akamai.net`
@@ -520,7 +521,6 @@ NetTrace was run against 12 real public Malware-Traffic-Analysis.net PCAP sample
 - `a2033.dscd.akamai.net`
 - `a978.i6g1.akamai.net`
 - `adl.windows.com`
-- `adl.windows.com.edgesuite.net`
 
 ### Notable IPs And Ports
 

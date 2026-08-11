@@ -8,6 +8,7 @@ thresholds:
   dga_score_threshold: 0.6
   high_frequency_connections: 50
   long_tls_session_seconds: 900
+  tls_sni_length_threshold: 24
 
 intel:
   known_bad_domains: nettrace/data/known_bad_domains.txt
