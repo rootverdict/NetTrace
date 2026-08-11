@@ -126,20 +126,6 @@ def test_idle_stream_is_expired_by_timestamp():
     assert buffers.incomplete_streams == 1
 
 
-def test_idle_stream_is_expired_by_timestamp():
-    buffers = TCPStreamBuffers(max_idle_seconds=5)
-    buffers.feed(_segment(100, b"incomplete", 1, timestamp=1.0), 1)
-    buffers.feed(
-        IP(src="10.0.0.6", dst="203.0.113.10")
-        / TCP(sport=50001, dport=80, seq=100, flags="A")
-        / Raw(load=b"other"),
-        2,
-    )
-
-    assert buffers.discarded_streams == 1
-    assert buffers.incomplete_streams == 1
-
-
 def test_incomplete_stream_visible_at_eof():
     # Bug #4: a stream that never receives its closing FIN/RST and never hits
     # a resource limit was previously invisible in the report -- it wasn't
