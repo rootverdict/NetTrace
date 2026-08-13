@@ -29,7 +29,12 @@ def pdf_text(value: object) -> str:
 
 def render_pdf_report(report: AnalysisReport, output_path: Path) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    doc = SimpleDocTemplate(str(output_path), pagesize=A4)
+    # ReportLab otherwise embeds the current creation/modification time and a
+    # run-specific document ID, so identical analysis input produces different
+    # PDF bytes on every run. The document template forwards invariant mode to
+    # its canvas, fixing those metadata fields and making committed reports
+    # mechanically reproducible.
+    doc = SimpleDocTemplate(str(output_path), pagesize=A4, invariant=1)
     styles = getSampleStyleSheet()
     elements = [
         Paragraph("NetTrace Malware Traffic Analysis Report", styles["Title"]),

@@ -72,7 +72,8 @@ than assumed:
 - Findings carry packet numbers and Wireshark `frame.number` filters.
 - The synthetic demo reproduces `docs/demo/` byte for byte, and all twelve real
   captures reproduce the counts recorded in `FINDINGS.md`.
-- 269 tests pass at 94.96% coverage against the enforced 80% floor.
+- 270 tests pass at 94.96% coverage against the enforced 80% floor, including
+  a regression test that proves identical reports produce identical PDF bytes.
 - Limitations are recorded in `docs/VALIDATION.md`, the README, and the
   "Not included in V1" list above.
 

@@ -64,3 +64,31 @@ def test_pdf_escapes_capture_controlled_paragraph_text(tmp_path):
     assert "captures/<unsafe>.pcap" in text
     assert "Suspicious <script> activity" in text
     assert "Warning includes <unsafe> text" in text
+
+
+def test_pdf_is_byte_reproducible_for_identical_report(tmp_path):
+    report = AnalysisReport(
+        pcap_path="sample.pcap",
+        dns_events=[],
+        http_events=[],
+        tls_events=[],
+        ftp_events=[],
+        flows=[],
+        iocs=[],
+        findings=[
+            Finding(
+                title="Deterministic finding",
+                description="The same report must produce the same PDF bytes.",
+                category="test",
+                evidence={"packet_number": 7},
+                severity="medium",
+                score=50,
+            )
+        ],
+        timeline=[],
+    )
+
+    first = render_pdf_report(report, tmp_path / "first.pdf")
+    second = render_pdf_report(report, tmp_path / "second.pdf")
+
+    assert first.read_bytes() == second.read_bytes()
