@@ -52,7 +52,7 @@ PCAP input
 Parser layer
   - DNS extractor
   - HTTP extractor
-  - TLS SNI extractor
+  - TLS SNI & JA3 extractor
   - Flow builder
   |
   v
@@ -73,10 +73,19 @@ Intel and mapping layer
   - Timeline building
   |
   v
-Report layer
+AI triage layer (optional)
+  - Attack chain correlation
+  - Executive summary synthesis
+  - Point-wise attack narrative
+  - Containment actions & Wireshark filters
+  |
+  v
+Report & Export layer
   - JSON findings
-  - HTML report
+  - HTML report (with visual attack flow & filter copy)
   - PDF report
+  - Markdown findings
+  - Evidence PCAP slicer
 ```
 
 ## Design Decisions
