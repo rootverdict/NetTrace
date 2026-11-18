@@ -37,7 +37,24 @@
     .warning { padding: 12px 15px; border: 1px solid #784c17; border-radius: 10px; background: #2a1d0c; color: #fbd38d; }
     .empty { padding: 18px; color: var(--muted); }
     .truncation { margin: 10px 0 0; padding: 10px 14px; border: 1px dashed #3a5a7d; border-radius: 10px; background: rgba(19, 36, 58, .7); color: #a9c4df; font-size: 13px; }
-    @media (max-width: 640px) { main { width: min(100% - 24px, 1180px); } th, td { padding: 9px; } }
+    .ai-box { padding: 20px; border: 1px solid #0284c7; border-radius: 14px; background: linear-gradient(135deg, rgba(14, 116, 144, 0.18), rgba(14, 27, 45, 0.92)); margin-bottom: 24px; }
+    .ai-verdict { display: inline-block; padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; }
+    .verdict-malicious { background: #e11d48; color: #fff; }
+    .verdict-suspicious { background: #d97706; color: #fff; }
+    .verdict-benign { background: #059669; color: #fff; }
+    .ai-box h3 { margin: 14px 0 6px; color: #38bdf8; font-size: 15px; }
+    .ai-box ul { margin: 6px 0 12px 20px; padding: 0; color: #cbd5e1; }
+    .hunting-tip-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; padding: 6px 10px; background: rgba(7, 16, 29, 0.6); border: 1px solid #1e3a5f; border-radius: 6px; }
+    .hunting-tip-text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; color: #7dd3fc; word-break: break-all; }
+    .copy-btn { margin-left: 10px; padding: 4px 10px; background: #0284c7; color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+    .copy-btn:hover { background: #0369a1; }
+    .copy-btn.copied { background: #059669; }
+    .chain-diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0; padding: 14px; background: rgba(7, 16, 29, 0.7); border: 1px solid #1e3a5f; border-radius: 10px; }
+    .chain-step { display: flex; align-items: center; gap: 8px; background: #13243a; padding: 8px 12px; border-radius: 8px; border: 1px solid #223d60; }
+    .chain-step-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #0284c7; color: white; font-size: 11px; font-weight: bold; flex-shrink: 0; }
+    .chain-step-text { font-size: 12px; color: #e2e8f0; }
+    .chain-arrow { color: #38bdf8; font-weight: bold; font-size: 16px; user-select: none; }
+    @media (max-width: 640px) { main { width: min(100% - 24px, 1180px); } th, td { padding: 9px; } .chain-diagram { flex-direction: column; align-items: stretch; } .chain-arrow { text-align: center; transform: rotate(90deg); margin: 2px 0; } }
   </style>
 </head>
 <body>
@@ -58,6 +75,61 @@
   {% if report.warnings %}
   <h2>Analysis Warnings</h2>
   {% for warning in report.warnings %}<p class="warning">{{ warning }}</p>{% endfor %}
+  {% endif %}
+
+  {% if report.ai_assessment %}
+  <h2>AI Threat Intelligence</h2>
+  <div class="ai-box">
+    <div>
+      <span class="ai-verdict verdict-{{ report.ai_assessment.threat_verdict|lower }}">
+        Verdict: {{ report.ai_assessment.threat_verdict }} (Confidence: {{ report.ai_assessment.confidence }})
+      </span>
+    </div>
+    <h3>Executive Summary</h3>
+    <p>{{ report.ai_assessment.executive_summary }}</p>
+    {% if report.ai_assessment.attack_narrative %}
+    <h3>Attack Narrative</h3>
+    {% if report.ai_assessment.attack_narrative is string %}
+    <p>{{ report.ai_assessment.attack_narrative }}</p>
+    {% else %}
+    <div class="chain-diagram">
+      {% for step in report.ai_assessment.attack_narrative %}
+      <div class="chain-step">
+        <span class="chain-step-num">{{ loop.index }}</span>
+        <span class="chain-step-text">{{ step|replace("Step " ~ loop.index ~ ":", "")|replace("Step " ~ loop.index ~ " -", "")|trim }}</span>
+      </div>
+      {% if not loop.last %}
+      <span class="chain-arrow">&rarr;</span>
+      {% endif %}
+      {% endfor %}
+    </div>
+    <ul>
+      {% for step in report.ai_assessment.attack_narrative %}
+      <li>{{ step }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% endif %}
+    {% if report.ai_assessment.recommended_actions %}
+    <h3>Recommended Containment Actions</h3>
+    <ul>
+      {% for act in report.ai_assessment.recommended_actions %}
+      <li>{{ act }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if report.ai_assessment.wireshark_hunting_tips %}
+    <h3>Wireshark Hunting Guidance</h3>
+    <div style="margin-top: 10px;">
+      {% for tip in report.ai_assessment.wireshark_hunting_tips %}
+      <div class="hunting-tip-item">
+        <span class="hunting-tip-text" id="filter-{{ loop.index }}">{{ tip }}</span>
+        <button type="button" class="copy-btn" onclick="copyFilter('filter-{{ loop.index }}', this)">Copy Filter</button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
   {% endif %}
 
   <h2>Summary</h2>
@@ -111,5 +183,19 @@
   </table></div>
   {% if timeline.truncated %}<p class="truncation">{{ timeline.notice }}</p>{% endif %}
 </main>
+<script>
+function copyFilter(elemId, btn) {
+  const text = document.getElementById(elemId).innerText.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const originalText = btn.innerText;
+    btn.innerText = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerText = originalText;
+      btn.classList.remove('copied');
+    }, 1800);
+  });
+}
+</script>
 </body>
 </html>

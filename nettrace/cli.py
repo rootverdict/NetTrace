@@ -43,6 +43,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--source", default="", help="Dataset/source label for Markdown findings")
     parser.add_argument("--source-url", default="", help="Dataset/source URL for Markdown findings")
+    parser.add_argument("--ai", action="store_true", help="Enable AI threat intelligence layer")
+    parser.add_argument("--ai-model", default=None, help="Override AI model (defaults to gemini-3.5-flash-lite)")
     return parser
 
 
@@ -55,6 +57,10 @@ def main() -> None:
     try:
         config_path = Path(args.config) if args.config is not None else Path("config.yaml")
         config = load_config(config_path, explicit=args.config is not None)
+        if args.ai:
+            config.setdefault("ai", {})["enabled"] = True
+        if args.ai_model:
+            config.setdefault("ai", {})["model"] = args.ai_model
     except (ConfigError, OSError) as exc:
         parser.error(f"configuration error: {exc}")
     try:

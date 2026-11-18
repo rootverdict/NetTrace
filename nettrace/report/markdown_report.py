@@ -298,6 +298,37 @@ def build_markdown(report: dict[str, Any], source: str = "", source_url: str = "
     )
     for title, count in counts.most_common():
         lines.append(f"- {markdown_text(title)}: {count}")
+
+    ai_assessment = report.get("ai_assessment")
+    if ai_assessment:
+        narrative = ai_assessment.get("attack_narrative", [])
+        if isinstance(narrative, list):
+            narrative_section = bullet_list([str(step) for step in narrative])
+        else:
+            narrative_section = markdown_text(str(narrative))
+
+        lines.extend(
+            [
+                "",
+                "## AI Threat Intelligence",
+                "",
+                f"- Threat Verdict: {markdown_text(str(ai_assessment.get('threat_verdict', 'UNKNOWN')))} (Confidence: {markdown_text(str(ai_assessment.get('confidence', 'UNKNOWN')))})",
+                "",
+                f"**Executive Summary:** {markdown_text(str(ai_assessment.get('executive_summary', '')))}",
+                "",
+                "### Attack Narrative",
+                "",
+                narrative_section,
+                "",
+                "### Recommended Containment Actions",
+                "",
+                bullet_list([str(act) for act in ai_assessment.get("recommended_actions", [])]),
+                "",
+                "### Wireshark Hunting Guidance",
+                "",
+                bullet_list([str(tip) for tip in ai_assessment.get("wireshark_hunting_tips", [])]),
+            ]
+        )
     lines.extend(
         [
             "",

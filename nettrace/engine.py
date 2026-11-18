@@ -5,6 +5,7 @@ from typing import Any
 
 from scapy.layers.inet import TCP
 
+from nettrace.ai.analyzer import run_ai_analysis
 from nettrace.analysis.beaconing import detect_beaconing
 from nettrace.analysis.dga_scorer import score_domains
 from nettrace.analysis.ftp_analyzer import analyze_ftp_events
@@ -231,6 +232,8 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
     if timeline_item_count > max_timeline_entries:
         warnings.add(f"Timeline truncated at {max_timeline_entries} entries.")
 
+    ai_assessment = run_ai_analysis(findings, config, pcap_name=pcap_path.name)
+
     return AnalysisReport(
         pcap_path=str(pcap_path),
         dns_events=dns_events,
@@ -244,4 +247,5 @@ def analyze_pcap(pcap_path: Path, config: dict[str, Any]) -> AnalysisReport:
         timeline=timeline,
         packet_count=packet_count,
         warnings=sorted(warnings),
+        ai_assessment=ai_assessment,
     )

@@ -21,6 +21,7 @@ class AnalysisReport:
     packet_count: int = 0
     warnings: list[str] = field(default_factory=list)
     observed_artifacts: list[IOC] = field(default_factory=list)
+    ai_assessment: dict[str, Any] | None = None
 
     def summary(self) -> dict[str, int]:
         return {
@@ -56,4 +57,5 @@ class AnalysisReport:
             "findings": [finding.to_dict() for finding in self.findings],
             "timeline": self.timeline,
             "warnings": self.warnings,
+            "ai_assessment": self.ai_assessment,
         }

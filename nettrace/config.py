@@ -36,6 +36,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "batch_size": 100,
         "timeout_seconds": 10,
     },
+    "ai": {
+        "enabled": False,
+        "api_key_env": "GEMINI_API_KEY",
+        "model": "gemini-3.5-flash-lite",
+        "timeout_seconds": 15,
+    },
     "protocols": {
         "http_ports": [80, 8000, 8080, 8888],
         "tcp_overlap_policy": "reject-conflicting-overlap",
@@ -111,7 +117,7 @@ def _reject_unknown_keys(loaded: dict[str, Any] | None, name: str) -> None:
     no warning. Unknown keys at these two levels are now a hard config error."""
     if not loaded:
         return
-    for section in ("thresholds", "misp", "limits", "protocols", "intel"):
+    for section in ("thresholds", "misp", "limits", "protocols", "intel", "ai"):
         section_value = loaded.get(section)
         if not isinstance(section_value, dict):
             continue
@@ -163,6 +169,14 @@ def validate_config(config: dict[str, Any]) -> None:
     _positive_integer(misp.get("max_iocs"), "misp.max_iocs")
     _positive_integer(misp.get("batch_size"), "misp.batch_size")
     _number(misp.get("timeout_seconds"), "misp.timeout_seconds", 0.1)
+
+    ai = _mapping(config.get("ai"), "ai")
+    if not isinstance(ai.get("enabled"), bool):
+        raise ConfigError("ai.enabled must be true or false.")
+    for key in ("api_key_env", "model"):
+        if not isinstance(ai.get(key), str):
+            raise ConfigError(f"ai.{key} must be a string.")
+    _positive_integer(ai.get("timeout_seconds"), "ai.timeout_seconds", 1)
 
     protocols = _mapping(config.get("protocols"), "protocols")
     http_ports = protocols.get("http_ports")

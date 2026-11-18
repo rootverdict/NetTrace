@@ -62,6 +62,28 @@ def render_pdf_report(report: AnalysisReport, output_path: Path) -> Path:
         for warning in report.warnings:
             elements.append(Paragraph(f"&bull; {pdf_text(warning)}", styles["Normal"]))
         elements.append(Spacer(1, 12))
+    if report.ai_assessment:
+        elements.append(Paragraph("AI Threat Intelligence", styles["Heading2"]))
+        verdict = report.ai_assessment.get("threat_verdict", "UNKNOWN")
+        confidence = report.ai_assessment.get("confidence", "UNKNOWN")
+        elements.append(Paragraph(f"<b>Verdict:</b> {pdf_text(verdict)} (Confidence: {pdf_text(confidence)})", styles["Normal"]))
+        summary_text = report.ai_assessment.get("executive_summary", "")
+        if summary_text:
+            elements.append(Paragraph(f"<b>Executive Summary:</b> {pdf_text(summary_text)}", styles["Normal"]))
+        narrative = report.ai_assessment.get("attack_narrative", [])
+        if narrative:
+            elements.append(Paragraph("<b>Attack Narrative:</b>", styles["Normal"]))
+            if isinstance(narrative, list):
+                for step in narrative:
+                    elements.append(Paragraph(f"&bull; {pdf_text(step)}", styles["Normal"]))
+            else:
+                elements.append(Paragraph(pdf_text(narrative), styles["Normal"]))
+        actions = report.ai_assessment.get("recommended_actions", [])
+        if actions:
+            elements.append(Paragraph("<b>Recommended Containment Actions:</b>", styles["Normal"]))
+            for act in actions:
+                elements.append(Paragraph(f"&bull; {pdf_text(act)}", styles["Normal"]))
+        elements.append(Spacer(1, 12))
     elements.append(Paragraph("Findings", styles["Heading2"]))
     findings = limited(
         sorted(report.findings, key=lambda item: item.score, reverse=True),

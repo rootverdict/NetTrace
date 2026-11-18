@@ -32,6 +32,7 @@ Quick proof: [PDF demo report](docs/demo/demo_beacon_http_report.pdf) | [HTML de
 - Detects high-frequency flows and unusual ports
 - Supports local IOC matching
 - Supports optional MISP enrichment
+- Supports optional AI-powered threat intelligence and triage
 - Adds potential MITRE ATT&CK technique associations
 - Scores finding severity
 - Builds a chronological activity timeline
@@ -103,6 +104,7 @@ NetTrace/
 |-- findings/
 |-- requirements.txt
 |-- nettrace/
+|   |-- ai/
 |   |-- analysis/
 |   |-- data/
 |   |-- intel/
@@ -222,6 +224,8 @@ Optional flags:
 - `--source "Dataset name"` - add source metadata to Markdown findings
 - `--source-url "https://example.test"` - add source URL metadata to Markdown findings
 - `-c config.yaml` - use a custom config file
+- `--ai` - enable AI threat intelligence and incident narrative
+- `--ai-model MODEL` - override default AI model (defaults to `gemini-3.5-flash-lite`)
 
 ## Generate Analyst Findings
 
@@ -362,6 +366,42 @@ misp:
   max_iocs: 5000
   batch_size: 100
   timeout_seconds: 10
+```
+
+## AI Threat Intelligence
+
+NetTrace includes an optional AI threat intelligence layer to correlate findings, synthesize an incident attack narrative, deliver an executive summary, and generate targeted Wireshark hunting filters.
+
+The engine remains 100% offline-first; the AI layer is opt-in and makes zero external requests unless enabled.
+
+### Setup
+
+Set your API key in your environment:
+
+```powershell
+# In PowerShell:
+$env:GEMINI_API_KEY = "YOUR_API_KEY"
+
+# Or persist across sessions on Windows:
+[System.Environment]::SetEnvironmentVariable('GEMINI_API_KEY', 'YOUR_API_KEY', 'User')
+```
+
+### Usage
+
+Enable on any PCAP analysis via CLI:
+
+```powershell
+nettrace path\to\traffic.pcap --ai -o output
+```
+
+Or enable permanently via `config.yaml`:
+
+```yaml
+ai:
+  enabled: true
+  api_key_env: GEMINI_API_KEY
+  model: gemini-3.5-flash-lite
+  timeout_seconds: 15
 ```
 
 ## Technical Notes

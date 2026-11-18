@@ -66,6 +66,9 @@ nettrace = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+filterwarnings = [
+  "ignore:Diffie-Hellman over finite fields.*:cryptography.utils.CryptographyDeprecationWarning",
+]
 
 [tool.coverage.run]
 source = ["nettrace"]

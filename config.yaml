@@ -24,6 +24,12 @@ misp:
   batch_size: 100
   timeout_seconds: 10
 
+ai:
+  enabled: false
+  api_key_env: GEMINI_API_KEY
+  model: gemini-3.5-flash-lite
+  timeout_seconds: 15
+
 protocols:
   tcp_overlap_policy: reject-conflicting-overlap
   http_ports:
