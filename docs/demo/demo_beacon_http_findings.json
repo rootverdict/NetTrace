@@ -391,5 +391,24 @@
       "summary": "Possible executable/script download request"
     }
   ],
-  "warnings": []
+  "warnings": [],
+  "ai_assessment": {
+    "executive_summary": "Analysis of network capture 'demo_beacon_http.pcap' indicates an active malware infection on internal host 10.0.0.5. The endpoint is communicating via periodic TCP beaconing to an external IP on port 4444, performing DNS lookups for a high-entropy domain identified as a DGA, and subsequently downloading a payload via HTTP from a known malicious domain matching local threat intelligence.",
+    "threat_verdict": "MALICIOUS",
+    "confidence": "HIGH",
+    "attack_narrative": [
+      "Step 1: Host 10.0.0.5 initiates periodic TCP beaconing activity to external IP 203.0.113.66 on port 4444 with a consistent 10-second interval.",
+      "Step 2: The infected host performs a DNS resolution request for a Domain Generation Algorithm (DGA) domain 'xj3k9q2z7m1p0a8c.biz', which matches known threat intelligence IOCs.",
+      "Step 3: The host issues an HTTP GET request to 'malware-test.example' to download an executable payload ('/payload.exe'), confirming C2 stage-2 download behavior."
+    ],
+    "recommended_actions": [
+      "Isolate host 10.0.0.5 immediately from the network to prevent further lateral movement or data exfiltration.",
+      "Block outbound traffic to IP 203.0.113.66 and domains 'xj3k9q2z7m1p0a8c.biz' and 'malware-test.example' at the perimeter firewall/proxy.",
+      "Perform forensic analysis on host 10.0.0.5 to identify the execution vector and remove the downloaded 'payload.exe' artifact."
+    ],
+    "wireshark_hunting_tips": [
+      "Use filter 'ip.addr == 10.0.0.5' to review all network activity originating from the compromised host.",
+      "Use filter 'tcp.port == 4444 or http.request' to isolate potential C2 channels and payload download requests."
+    ]
+  }
 }

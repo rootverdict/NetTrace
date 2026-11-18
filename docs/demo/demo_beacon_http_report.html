@@ -37,7 +37,24 @@
     .warning { padding: 12px 15px; border: 1px solid #784c17; border-radius: 10px; background: #2a1d0c; color: #fbd38d; }
     .empty { padding: 18px; color: var(--muted); }
     .truncation { margin: 10px 0 0; padding: 10px 14px; border: 1px dashed #3a5a7d; border-radius: 10px; background: rgba(19, 36, 58, .7); color: #a9c4df; font-size: 13px; }
-    @media (max-width: 640px) { main { width: min(100% - 24px, 1180px); } th, td { padding: 9px; } }
+    .ai-box { padding: 20px; border: 1px solid #0284c7; border-radius: 14px; background: linear-gradient(135deg, rgba(14, 116, 144, 0.18), rgba(14, 27, 45, 0.92)); margin-bottom: 24px; }
+    .ai-verdict { display: inline-block; padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 13px; text-transform: uppercase; margin-bottom: 12px; }
+    .verdict-malicious { background: #e11d48; color: #fff; }
+    .verdict-suspicious { background: #d97706; color: #fff; }
+    .verdict-benign { background: #059669; color: #fff; }
+    .ai-box h3 { margin: 14px 0 6px; color: #38bdf8; font-size: 15px; }
+    .ai-box ul { margin: 6px 0 12px 20px; padding: 0; color: #cbd5e1; }
+    .hunting-tip-item { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; padding: 6px 10px; background: rgba(7, 16, 29, 0.6); border: 1px solid #1e3a5f; border-radius: 6px; }
+    .hunting-tip-text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; color: #7dd3fc; word-break: break-all; }
+    .copy-btn { margin-left: 10px; padding: 4px 10px; background: #0284c7; color: white; border: none; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+    .copy-btn:hover { background: #0369a1; }
+    .copy-btn.copied { background: #059669; }
+    .chain-diagram { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0; padding: 14px; background: rgba(7, 16, 29, 0.7); border: 1px solid #1e3a5f; border-radius: 10px; }
+    .chain-step { display: flex; align-items: center; gap: 8px; background: #13243a; padding: 8px 12px; border-radius: 8px; border: 1px solid #223d60; }
+    .chain-step-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #0284c7; color: white; font-size: 11px; font-weight: bold; flex-shrink: 0; }
+    .chain-step-text { font-size: 12px; color: #e2e8f0; }
+    .chain-arrow { color: #38bdf8; font-weight: bold; font-size: 16px; user-select: none; }
+    @media (max-width: 640px) { main { width: min(100% - 24px, 1180px); } th, td { padding: 9px; } .chain-diagram { flex-direction: column; align-items: stretch; } .chain-arrow { text-align: center; transform: rotate(90deg); margin: 2px 0; } }
   </style>
 </head>
 <body>
@@ -55,6 +72,56 @@
     </div>
   </header>
 
+
+  <h2>AI Threat Intelligence</h2>
+  <div class="ai-box">
+    <div>
+      <span class="ai-verdict verdict-malicious">
+        Verdict: MALICIOUS (Confidence: HIGH)
+      </span>
+    </div>
+    <h3>Executive Summary</h3>
+    <p>Analysis of network capture &#39;demo_beacon_http.pcap&#39; indicates an active malware infection on internal host 10.0.0.5. The endpoint is communicating via periodic TCP beaconing to an external IP on port 4444, performing DNS lookups for a high-entropy domain identified as a DGA, and subsequently downloading a payload via HTTP from a known malicious domain matching local threat intelligence.</p>
+    <h3>Attack Narrative</h3>
+    <div class="chain-diagram">
+      <div class="chain-step">
+        <span class="chain-step-num">1</span>
+        <span class="chain-step-text">Host 10.0.0.5 initiates periodic TCP beaconing activity to external IP 203.0.113.66 on port 4444 with a consistent 10-second interval.</span>
+      </div>
+      <span class="chain-arrow">&rarr;</span>
+      <div class="chain-step">
+        <span class="chain-step-num">2</span>
+        <span class="chain-step-text">The infected host performs a DNS resolution request for a Domain Generation Algorithm (DGA) domain &#39;xj3k9q2z7m1p0a8c.biz&#39;, which matches known threat intelligence IOCs.</span>
+      </div>
+      <span class="chain-arrow">&rarr;</span>
+      <div class="chain-step">
+        <span class="chain-step-num">3</span>
+        <span class="chain-step-text">The host issues an HTTP GET request to &#39;malware-test.example&#39; to download an executable payload (&#39;/payload.exe&#39;), confirming C2 stage-2 download behavior.</span>
+      </div>
+    </div>
+    <ul>
+      <li>Step 1: Host 10.0.0.5 initiates periodic TCP beaconing activity to external IP 203.0.113.66 on port 4444 with a consistent 10-second interval.</li>
+      <li>Step 2: The infected host performs a DNS resolution request for a Domain Generation Algorithm (DGA) domain &#39;xj3k9q2z7m1p0a8c.biz&#39;, which matches known threat intelligence IOCs.</li>
+      <li>Step 3: The host issues an HTTP GET request to &#39;malware-test.example&#39; to download an executable payload (&#39;/payload.exe&#39;), confirming C2 stage-2 download behavior.</li>
+    </ul>
+    <h3>Recommended Containment Actions</h3>
+    <ul>
+      <li>Isolate host 10.0.0.5 immediately from the network to prevent further lateral movement or data exfiltration.</li>
+      <li>Block outbound traffic to IP 203.0.113.66 and domains &#39;xj3k9q2z7m1p0a8c.biz&#39; and &#39;malware-test.example&#39; at the perimeter firewall/proxy.</li>
+      <li>Perform forensic analysis on host 10.0.0.5 to identify the execution vector and remove the downloaded &#39;payload.exe&#39; artifact.</li>
+    </ul>
+    <h3>Wireshark Hunting Guidance</h3>
+    <div style="margin-top: 10px;">
+      <div class="hunting-tip-item">
+        <span class="hunting-tip-text" id="filter-1">Use filter &#39;ip.addr == 10.0.0.5&#39; to review all network activity originating from the compromised host.</span>
+        <button type="button" class="copy-btn" onclick="copyFilter('filter-1', this)">Copy Filter</button>
+      </div>
+      <div class="hunting-tip-item">
+        <span class="hunting-tip-text" id="filter-2">Use filter &#39;tcp.port == 4444 or http.request&#39; to isolate potential C2 channels and payload download requests.</span>
+        <button type="button" class="copy-btn" onclick="copyFilter('filter-2', this)">Copy Filter</button>
+      </div>
+    </div>
+  </div>
 
   <h2>Summary</h2>
   <div class="panel"><table>
@@ -233,5 +300,19 @@
     <tr><td>70.000</td><td>finding</td><td>Possible executable/script download request</td></tr>
   </table></div>
 </main>
+<script>
+function copyFilter(elemId, btn) {
+  const text = document.getElementById(elemId).innerText.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const originalText = btn.innerText;
+    btn.innerText = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerText = originalText;
+      btn.classList.remove('copied');
+    }, 1800);
+  });
+}
+</script>
 </body>
 </html>
