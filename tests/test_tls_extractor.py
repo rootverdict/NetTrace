@@ -72,6 +72,14 @@ def test_extract_tls_events_filters_invalid_packets_and_numbers_matches():
     assert events[0].packet_number == 2
 
 
+def test_extract_tls_event_computes_ja3():
+    event = extract_tls_event(tls_packet(tls_client_hello("ja3.example")), packet_number=1)
+    assert event is not None
+    assert event.sni == "ja3.example"
+    assert len(event.ja3) == 32
+    assert event.ja3_string.startswith("771,4865,0")
+
+
 def test_tls_stream_skips_complete_non_handshake_record_before_client_hello():
     application_data = b"\x17\x03\x03\x00\x03abc"
     extractor = TLSStreamExtractor()

@@ -20,6 +20,8 @@ Quick proof: [PDF demo report](docs/demo/demo_beacon_http_report.pdf) | [HTML de
 - Extracts UDP and TCP DNS queries, responses, and per-answer TTLs
 - Extracts plaintext HTTP methods, hosts, URIs, URLs, and user agents
 - Extracts TLS ClientHello SNI values on common TLS ports
+- Extracts native TLS JA3 fingerprints and canonical JA3 strings for encrypted C2 profiling
+- Slices and exports standalone evidentiary PCAPs containing only detection-referenced frames
 - Builds IP flow and conversation metadata
 - Extracts protocol-backed IOCs including domains, URLs, and public IP addresses
 - Exports raw public flow endpoint IPs separately as observed artifacts
@@ -226,6 +228,7 @@ Optional flags:
 - `-c config.yaml` - use a custom config file
 - `--ai` - enable AI threat intelligence and incident narrative
 - `--ai-model MODEL` - override default AI model (defaults to `gemini-3.5-flash-lite`)
+- `--export-evidence-pcap PATH` - extract only finding-referenced packets into a lightweight standalone evidence PCAP
 
 ## Generate Analyst Findings
 

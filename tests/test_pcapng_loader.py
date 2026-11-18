@@ -97,3 +97,35 @@ def test_iter_packets_reports_malformed_pcapng(tmp_path):
 
     with pytest.raises((Scapy_Exception, EOFError, ValueError)):
         list(iter_packets(capture))
+
+
+def test_export_evidence_pcap(tmp_path):
+    from nettrace.parsers.pcap_loader import export_evidence_pcap
+    from scapy.utils import PcapWriter
+
+    input_pcap = tmp_path / "input.pcap"
+    output_pcap = tmp_path / "evidence.pcap"
+
+    p1 = _dns_packet("first.example", 1.0)
+    p2 = _dns_packet("second.example", 2.0)
+    p3 = _dns_packet("third.example", 3.0)
+
+    with PcapWriter(str(input_pcap)) as writer:
+        writer.write(p1)
+        writer.write(p2)
+        writer.write(p3)
+
+    # Empty targets test
+    assert export_evidence_pcap(input_pcap, output_pcap, []) == 0
+    assert not output_pcap.exists()
+
+    # Targets: packet 1 and 3
+    written = export_evidence_pcap(input_pcap, output_pcap, [1, 3])
+    assert written == 2
+    assert output_pcap.exists()
+
+    exported = list(iter_packets(output_pcap))
+    assert len(exported) == 2
+    assert exported[0][DNSQR].qname == b"first.example."
+    assert exported[1][DNSQR].qname == b"third.example."
+

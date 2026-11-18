@@ -164,3 +164,52 @@ def test_cli_writes_every_report_format_by_default(tmp_path, monkeypatch, capsys
     captured = capsys.readouterr()
     assert "Analysis complete: 0 findings" in captured.out
     assert "Markdown findings:" in captured.out
+
+
+def test_cli_exports_evidence_pcap(tmp_path, monkeypatch, capsys):
+    output = tmp_path / "output"
+    evidence_pcap = tmp_path / "evidence.pcap"
+    fake_calls = []
+
+    def fake_export(pcap_path, out_pcap, targets):
+        fake_calls.append((pcap_path, out_pcap, targets))
+        return len(targets)
+
+    from nettrace.models.findings import Finding
+
+    report = _empty_report()
+    report.findings.append(
+        Finding(
+            title="Beacon",
+            description="desc",
+            category="c2",
+            evidence={"packet_number": 42},
+        )
+    )
+
+    monkeypatch.setattr("nettrace.cli.load_config", lambda _path, explicit=False: {})
+    monkeypatch.setattr("nettrace.cli.analyze_pcap", lambda _path, _config: report)
+    monkeypatch.setattr("nettrace.cli.export_evidence_pcap", fake_export)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "nettrace",
+            "sample.pcap",
+            "--output",
+            str(output),
+            "--no-json",
+            "--no-html",
+            "--no-pdf",
+            "--no-md",
+            "--export-evidence-pcap",
+            str(evidence_pcap),
+        ],
+    )
+
+    main()
+    captured = capsys.readouterr()
+    assert "Evidence PCAP exported: 1 packets saved" in captured.out
+    assert len(fake_calls) == 1
+    assert fake_calls[0][1] == evidence_pcap
+    assert fake_calls[0][2] == {42}
+

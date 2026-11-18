@@ -6,8 +6,10 @@ from pathlib import Path
 
 from scapy.error import Scapy_Exception
 
+from nettrace.analysis.evidence import collect_evidence_packet_numbers
 from nettrace.config import ConfigError, load_config
 from nettrace.engine import analyze_pcap
+from nettrace.parsers.pcap_loader import export_evidence_pcap
 from nettrace.report.html_report import render_html_report
 from nettrace.report.json_export import export_json
 from nettrace.report.markdown_report import build_markdown, default_output_path
@@ -43,6 +45,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--source", default="", help="Dataset/source label for Markdown findings")
     parser.add_argument("--source-url", default="", help="Dataset/source URL for Markdown findings")
+    parser.add_argument(
+        "--export-evidence-pcap",
+        default=None,
+        help="Export only finding evidence packets to a condensed PCAP file",
+    )
     parser.add_argument("--ai", action="store_true", help="Enable AI threat intelligence layer")
     parser.add_argument("--ai-model", default=None, help="Override AI model (defaults to gemini-3.5-flash-lite)")
     return parser
@@ -85,6 +92,11 @@ def main() -> None:
                 build_markdown(report.to_dict(), source=args.source, source_url=args.source_url),
                 encoding="utf-8",
             )
+        if args.export_evidence_pcap:
+            evidence_pcap_path = Path(args.export_evidence_pcap)
+            target_packets = collect_evidence_packet_numbers(report.findings)
+            written_count = export_evidence_pcap(pcap_path, evidence_pcap_path, target_packets)
+            print(f"Evidence PCAP exported: {written_count} packets saved to {evidence_pcap_path.resolve()}")
     except (OSError, ValueError) as exc:
         parser.error(f"report output error: {exc}")
 

@@ -114,6 +114,8 @@ class TLSEvent:
     dst_ip: str
     dst_port: int
     sni: str = ""
+    ja3: str = ""
+    ja3_string: str = ""
     packet_number: int = 0
     src_port: int = 0
 
